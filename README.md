@@ -10,10 +10,13 @@ A high-performance, operationally passive curation platform showcasing genuine i
 - **Database**: SQLite (`data/handmade.db`) with WAL mode for fast, lightweight local relational storage
 - **Aesthetic**: Warm, organic, earthy aesthetic with editorial serif typography (*Playfair Display*) and tactile whitespace
 - **Affiliate & Compliance**: Strict Amazon Associates Operating Agreement compliance. No native cart checkout; direct outbound referral tracking via `/api/click?asin=...` with programmatic `AMAZON_TAG` injection
+- **Multimodal AI Vision & Heuristic Shield**: Two-tier craft verification pipeline (`gemini-2.5-flash` + hardened heuristic regex) rejecting tools, machinery, kits, factory multi-packs, and commercial brands
 - **Client-Side Wishlist Drawer**: Slide-over session drawer allowing users to queue handmade items and review direct Amazon links
-- **Automated Workers**:
-  - `npm run worker:ingest` — Monthly ingestion script with artisan keyword and mass-production weed-out filter
-  - `npm run worker:check-rot` — Weekly automated link-rot checker to flag 404s and de-list unavailable products
+- **Automated Workers & CLI Utilities**:
+  - `npm run db:audit` — Multimodal AI vision audit inspecting all catalog items and imagery
+  - `npm run db:purge` — Purges non-handmade, factory, or duplicate items from SQLite
+  - `npm run scrape` — Live Amazon Handmade crawler with two-tier vision filtering
+  - `npm run worker:check-rot` — Automated link-rot checker to flag 404s and de-list unavailable products
 - **Operator Dashboard (`/admin`)**: Password-protected suite showing real-time traffic, outbound affiliate click counters, category breakdowns, logs, and manual worker triggers
 
 ---
@@ -23,12 +26,17 @@ A high-performance, operationally passive curation platform showcasing genuine i
 ```text
 handmade/
 ├── data/
-│   └── handmade.db               # Local SQLite database (persisted via Docker volume)
+│   ├── handmade.db               # Local SQLite database (135 verified artisan goods)
+│   └── verified-catalog.json     # Backup snapshot of verified authentic items
 ├── public/                       # Static assets & favicon
 ├── scripts/
-│   ├── seed.ts                   # Seeds 19 authentic artisan goods across 5 categories
-│   ├── ingest.ts                 # Monthly product ingestion worker with quality filter
-│   └── check-rot.ts              # Weekly link-rot checker worker
+│   ├── seed.ts                   # Seeds 135 verified artisan goods from snapshot
+│   ├── seed-data.json            # Pristine catalog dataset for initial deployments
+│   ├── audit-catalog.ts          # AI Vision audit script
+│   ├── purge-non-handmade.ts     # Curated cleanup script
+│   ├── scrape.ts                 # Amazon Handmade crawler & evaluator
+│   ├── ingest.ts                 # Product ingestion worker
+│   └── check-rot.ts              # Link-rot checker worker
 ├── src/
 │   ├── components/
 │   │   ├── Header.astro          # Site header with category navigation & wishlist trigger
@@ -115,6 +123,16 @@ npm run scrape -- --query "handmade walnut cutting board" --limit 6
 
 # Import specific ASINs directly
 npm run scrape -- --asin "B0BW4LD35T,B00PMF383O"
+```
+
+### AI Vision Catalog Audit & Purge Utilities
+Verify catalog craft authenticity using multimodal vision (`gemini-2.5-flash`) and remove commercial stragglers:
+```bash
+# Audit entire active catalog with Gemini Vision + HD image checks
+npm run db:audit
+
+# Purge any non-artisan, commercial brand, or duplicate listings from SQLite
+npm run db:purge
 ```
 
 ### Monthly Ingestion Worker
