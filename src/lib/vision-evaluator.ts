@@ -86,48 +86,44 @@ export async function validatePicture(url: string): Promise<{
 }
 
 /**
- * Immediate rejection keywords: Tools, Machines, Equipment, DIY Supplies, Multi-Packs
+ * Immediate rejection patterns: Tools, Machines, Equipment, DIY Supplies, Multi-Packs
  */
-const FORBIDDEN_TOOL_AND_MACHINE_TERMS = [
-  'pottery wheel',
-  'forming machine',
-  '450w',
-  'electric wheel',
-  'branding iron',
-  'stamp kit',
-  'aligner tool',
-  'foot ring tool',
-  'chisel set',
-  'carving knife set',
-  'silicone mold',
-  'resin mold',
-  'acrylic template',
-  'diy kit',
-  'blank wood',
-  'laser engraver',
-  'cnc machine',
-  'heat press',
-  'drill bit',
-  '2pack',
-  '2 pack',
-  '3 pack',
-  '5 pack',
-  'pack of 10',
-  'pack of 50',
-  'pack of 100',
-  'wholesale lot',
-  'rfid slim',
-  'drop ship',
+const FORBIDDEN_PATTERNS = [
+  /\btools?\b/i,
+  /\bmachines?\b/i,
+  /\bshapers?\b/i,
+  /\bscrapers?\b/i,
+  /\bmolds?\b/i,
+  /\btemplates?\b/i,
+  /\bchisels?\b/i,
+  /\bbranding irons?\b/i,
+  /\bstamps?\b/i,
+  /\bdrill bits?\b/i,
+  /\bpottery wheels?\b/i,
+  /\bwheel machines?\b/i,
+  /\b[0-9]+w\b/i, // watt (450W, 350W, etc.)
+  /\b[0-9]+\s*pack\b/i, // 2pack, 5 pack, etc.
+  /\bpack of [0-9]+\b/i,
+  /\bwholesale\b/i,
+  /\bdiy\b/i,
+  /\brfid\b/i,
+  /\blaser engraver\b/i,
+  /\bcnc\b/i,
+  /\bairbrush\b/i,
+  /\brotary\b/i,
+  /\bburnisher\b/i,
+  /\btrimming\b/i,
 ];
 
 export function checkHeuristicHardFilter(title: string, description?: string): { pass: boolean; reason?: string } {
-  const combined = `${title} ${description || ''}`.toLowerCase();
+  const combined = `${title} ${description || ''}`;
 
-  for (const term of FORBIDDEN_TOOL_AND_MACHINE_TERMS) {
-    if (combined.includes(term)) {
+  for (const pattern of FORBIDDEN_PATTERNS) {
+    const match = combined.match(pattern);
+    if (match) {
       return {
         pass: false,
-        reason: `Flagged as tool, machine, accessory, or multi-pack: contains "${term}"`,
+        reason: `Flagged as tool, machine, accessory, or multi-pack: matches "${match[0]}"`,
       };
     }
   }

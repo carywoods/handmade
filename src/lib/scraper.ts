@@ -53,29 +53,29 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export const CATEGORY_SEARCH_QUERIES: Record<string, string[]> = {
   'Woodworking': [
-    'handmade woodworking cutting board',
-    'handmade live edge wood tray',
-    'hand carved wood bowl artisan',
+    'handmade cutting board artisan wood',
+    'handmade wooden salad bowl artisan',
+    'handmade live edge serving tray wood',
   ],
   'Pottery & Ceramics': [
-    'handmade stoneware coffee mug ceramic',
-    'wheel thrown ceramic planter pottery',
-    'hand crafted porcelain artisan pottery',
+    'handmade stoneware coffee mug',
+    'wheel thrown pottery vase ceramic',
+    'handmade ceramic ramen bowl artisan',
   ],
   'Leather Goods': [
-    'handmade full grain leather wallet',
-    'handmade leather journal notebook',
-    'hand stitched leather craft artisan',
+    'handmade leather bifold wallet full grain',
+    'handmade leather journal cover refillable',
+    'handmade leather tote bag artisan',
   ],
   'Textiles': [
-    'handmade linen throw blanket woven',
-    'hand dyed indigo textile cotton',
-    'handmade wool knit blanket artisan',
+    'handmade woven linen throw blanket',
+    'handmade wool knit blanket throw',
+    'handmade cotton table runner handwoven',
   ],
   'Home & Living': [
-    'handmade beeswax candles natural pure',
-    'hand forged iron hooks blacksmith',
-    'handmade artisan home decor craft',
+    'handmade pure beeswax taper candles pair',
+    'hand forged iron coat hook blacksmith',
+    'handmade soy scented candle amber jar artisan',
   ],
 };
 
