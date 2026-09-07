@@ -103,9 +103,11 @@ export async function runLinkRotChecker() {
   console.log(`--- ${summary} ---`);
 }
 
-// Direct execution
-runLinkRotChecker().catch((err) => {
-  console.error('Link rot worker error:', err);
-  logSystemEvent('link_rot_check', 'error', String(err));
-  process.exit(1);
-});
+// Run only when invoked directly from CLI
+if (process.argv[1] && process.argv[1].includes('check-rot.ts')) {
+  runLinkRotChecker().catch((err) => {
+    console.error('Link rot worker error:', err);
+    logSystemEvent('link_rot_check', 'error', String(err));
+    process.exit(1);
+  });
+}

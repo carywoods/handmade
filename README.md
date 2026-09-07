@@ -101,7 +101,21 @@ Open `http://localhost:4321` in your browser.
 
 ---
 
-## 🛠️ Background Workers
+### Live Amazon Handmade Scraper & Loader
+Crawls live Amazon Handmade search results, inspects product photography, pricing, and maker attributes, runs our authenticity filter to reject mass-produced items, and loads verified goods directly into SQLite:
+```bash
+# Scrape top items across all 5 organic categories
+npm run scrape
+
+# Scrape a specific category with limit
+npm run scrape -- --category "Pottery & Ceramics" --limit 5
+
+# Scrape by custom search query
+npm run scrape -- --query "handmade walnut cutting board" --limit 6
+
+# Import specific ASINs directly
+npm run scrape -- --asin "B0BW4LD35T,B00PMF383O"
+```
 
 ### Monthly Ingestion Worker
 Pulls incoming artisan candidates, executes heuristic quality filters to weed out mass-produced items and wholesale dropshippers, classifies them into the 5 core organic categories, and registers them in SQLite:

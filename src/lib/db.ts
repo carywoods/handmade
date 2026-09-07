@@ -273,6 +273,10 @@ export function getAdminStats() {
     .prepare(`SELECT created_at, status, details FROM system_logs WHERE event_type = 'link_rot_check' ORDER BY id DESC LIMIT 1`)
     .get() as { created_at: string; status: string; details: string } | undefined;
 
+  const lastScraper = db
+    .prepare(`SELECT created_at, status, details FROM system_logs WHERE event_type = 'catalog_scraper' ORDER BY id DESC LIMIT 1`)
+    .get() as { created_at: string; status: string; details: string } | undefined;
+
   const recentLogs = db
     .prepare(`SELECT * FROM system_logs ORDER BY id DESC LIMIT 15`)
     .all() as SystemLog[];
@@ -299,6 +303,7 @@ export function getAdminStats() {
     categoryBreakdown,
     lastIngestion: lastIngestion || null,
     lastLinkRotCheck: lastLinkRotCheck || null,
+    lastScraper: lastScraper || null,
     recentLogs,
     topClickedItems,
   };

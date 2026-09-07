@@ -121,17 +121,116 @@ const actionMsg = Astro.url.searchParams.get('msg');
               {stats.lastIngestion ? new Date(stats.lastIngestion.created_at).toLocaleDateString() : 'Pending'}
             </span>
           </div>
+          <div class="flex justify-between">
+            <span class="text-warm-800/80">Live Scraper:</span>
+            <span class="font-medium text-clay-700 font-semibold">
+              {stats.lastScraper ? new Date(stats.lastScraper.created_at).toLocaleDateString() : 'Ready'}
+            </span>
+          </div>
         </div>
       </div>
 
+    </div>
+
+    <!-- Live Amazon Handmade Scraper Panel -->
+    <div class="p-6 rounded-2xl bg-white border border-warm-200 shadow-xs space-y-6">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-warm-100 pb-4">
+        <div>
+          <h2 class="text-lg font-serif text-warm-900 flex items-center gap-2">
+            <span>Amazon Handmade Scraper & Catalog Loader</span>
+            <span class="text-[10px] uppercase tracking-wider font-bold bg-clay-100 text-clay-800 px-2 py-0.5 rounded-full">
+              Live Ingest
+            </span>
+          </h2>
+          <p class="text-xs text-warm-800/70">
+            Crawl live Amazon Handmade listings, vet craftsmanship through our authenticity filter, and upsert directly into SQLite.
+          </p>
+        </div>
+        <form action="/api/admin/action" method="POST">
+          <input type="hidden" name="action" value="run-scraper" />
+          <input type="hidden" name="limit" value="4" />
+          <button
+            type="submit"
+            class="px-4 py-2 rounded-xl bg-clay-600 hover:bg-clay-700 text-white text-xs font-semibold tracking-wide flex items-center gap-2 shadow-xs transition-all"
+          >
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            Scrape All 5 Categories Now
+          </button>
+        </form>
+      </div>
+
+      <!-- Targeted Search Scraper & Direct ASIN Importer -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+        
+        <!-- Custom Query Form -->
+        <form action="/api/admin/action" method="POST" class="p-4 rounded-xl bg-warm-50/80 border border-warm-200 space-y-3">
+          <input type="hidden" name="action" value="scrape-query" />
+          <div>
+            <label class="block text-xs font-bold text-warm-900 uppercase tracking-wider mb-1">
+              Search Term Scraper
+            </label>
+            <input
+              type="text"
+              name="query"
+              required
+              placeholder="e.g. handmade walnut cutting board"
+              class="w-full px-3 py-2 text-xs rounded-lg border border-warm-300 bg-white focus:outline-none focus:ring-2 focus:ring-clay-500/40"
+            />
+          </div>
+          <div class="flex items-center justify-between gap-3">
+            <div class="flex items-center gap-2 text-xs text-warm-800/80">
+              <span>Items to fetch:</span>
+              <select name="limit" class="px-2 py-1 bg-white border border-warm-300 rounded text-xs">
+                <option value="3">3</option>
+                <option value="6" selected>6</option>
+                <option value="12">12</option>
+              </select>
+            </div>
+            <button
+              type="submit"
+              class="px-3.5 py-1.5 rounded-lg bg-warm-900 hover:bg-black text-white text-xs font-semibold tracking-wide transition-colors"
+            >
+              Scrape & Import
+            </button>
+          </div>
+        </form>
+
+        <!-- Direct ASIN Importer Form -->
+        <form action="/api/admin/action" method="POST" class="p-4 rounded-xl bg-warm-50/80 border border-warm-200 space-y-3">
+          <input type="hidden" name="action" value="scrape-asins" />
+          <div>
+            <label class="block text-xs font-bold text-warm-900 uppercase tracking-wider mb-1">
+              Direct ASIN Importer
+            </label>
+            <input
+              type="text"
+              name="asins"
+              required
+              placeholder="e.g. B0BW4LD35T, B00PMF383O"
+              class="w-full px-3 py-2 text-xs rounded-lg border border-warm-300 bg-white focus:outline-none focus:ring-2 focus:ring-clay-500/40 font-mono"
+            />
+          </div>
+          <div class="flex items-center justify-end">
+            <button
+              type="submit"
+              class="px-3.5 py-1.5 rounded-lg bg-warm-800 hover:bg-warm-900 text-white text-xs font-semibold tracking-wide transition-colors"
+            >
+              Fetch & Ingest ASINs
+            </button>
+          </div>
+        </form>
+
+      </div>
     </div>
 
     <!-- Manual Operator Trigger Bar -->
     <div class="p-6 rounded-2xl bg-warm-100/80 border border-warm-200 space-y-4">
       <div class="flex items-center justify-between">
         <div>
-          <h2 class="text-lg font-serif text-warm-900">Worker Control Center</h2>
-          <p class="text-xs text-warm-800/70">Manually invoke background maintenance tasks or database cleanup.</p>
+          <h2 class="text-lg font-serif text-warm-900">Maintenance & Hygiene Controls</h2>
+          <p class="text-xs text-warm-800/70">Run link rot scans, seed data, or purge de-listed items from SQLite.</p>
         </div>
       </div>
 
@@ -146,7 +245,7 @@ const actionMsg = Astro.url.searchParams.get('msg');
             <svg class="w-4 h-4 text-clay-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
             </svg>
-            Trigger Monthly Ingestion
+            Trigger Monthly Ingestion Worker
           </button>
         </form>
 

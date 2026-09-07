@@ -183,9 +183,11 @@ export async function runIngestion() {
   console.log(`--- Ingestion Finished: ${logMessage} ---`);
 }
 
-// Direct execution
-runIngestion().catch((err) => {
-  console.error('Ingestion worker error:', err);
-  logSystemEvent('monthly_ingestion', 'error', String(err));
-  process.exit(1);
-});
+// Run only when invoked directly from CLI
+if (process.argv[1] && process.argv[1].includes('ingest.ts')) {
+  runIngestion().catch((err) => {
+    console.error('Ingestion worker error:', err);
+    logSystemEvent('monthly_ingestion', 'error', String(err));
+    process.exit(1);
+  });
+}

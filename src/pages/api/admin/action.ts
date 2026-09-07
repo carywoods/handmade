@@ -3,6 +3,7 @@ import { isAdminAuthenticated } from '../../../lib/auth';
 import { toggleItemStatus, pruneInactiveItems, logSystemEvent } from '../../../lib/db';
 import { runIngestion } from '../../../../scripts/ingest';
 import { runLinkRotChecker } from '../../../../scripts/check-rot';
+import { scrapeAndUploadCatalog } from '../../../lib/scraper';
 
 export const POST: APIRoute = async ({ request, cookies, redirect }) => {
   if (!isAdminAuthenticated(cookies)) {
@@ -24,6 +25,24 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
       await runIngestion();
     } else if (action === 'run-rot-check') {
       await runLinkRotChecker();
+    } else if (action === 'run-scraper') {
+      const limit = parseInt(formData.get('limit')?.toString() || '4', 10);
+      await scrapeAndUploadCatalog({ maxPerCategory: limit });
+    } else if (action === 'scrape-query') {
+      const query = formData.get('query')?.toString()?.trim();
+      const limit = parseInt(formData.get('limit')?.toString() || '5', 10);
+      if (query) {
+        await scrapeAndUploadCatalog({ customQuery: query, maxPerCategory: limit });
+      }
+    } else if (action === 'scrape-asins') {
+      const asinsRaw = formData.get('asins')?.toString() || '';
+      const asins = asinsRaw
+        .split(',')
+        .map((s) => s.trim().toUpperCase())
+        .filter((s) => s.length === 10);
+      if (asins.length > 0) {
+        await scrapeAndUploadCatalog({ customAsins: asins });
+      }
     }
 
     return redirect('/admin?status=success', 302);

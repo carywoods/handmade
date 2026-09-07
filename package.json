@@ -13,6 +13,8 @@
     "astro": "astro",
     "worker:ingest": "tsx scripts/ingest.ts",
     "worker:check-rot": "tsx scripts/check-rot.ts",
+    "worker:scrape": "tsx scripts/scrape.ts",
+    "scrape": "tsx scripts/scrape.ts",
     "db:seed": "tsx scripts/seed.ts"
   },
   "dependencies": {
@@ -21,6 +23,7 @@
     "@tailwindcss/vite": "^4.3.3",
     "astro": "^7.3.1",
     "better-sqlite3": "^13.0.3",
+    "cheerio": "^1.2.0",
     "dotenv": "^17.4.2",
     "tailwindcss": "^4.3.3",
     "tsx": "^4.23.13"
