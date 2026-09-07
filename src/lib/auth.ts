@@ -4,7 +4,8 @@ import crypto from 'node:crypto';
 const COOKIE_NAME = 'imh_admin_session';
 
 function getAdminPassword(): string {
-  return process.env.ADMIN_PASSWORD || 'handmade-secret-2026';
+  // @ts-ignore
+  return (typeof import.meta !== 'undefined' && import.meta.env?.ADMIN_PASSWORD) || process.env.ADMIN_PASSWORD || 'handmade-secret-2026';
 }
 
 function generateSessionToken(password: string): string {

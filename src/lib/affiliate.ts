@@ -3,8 +3,9 @@
  */
 
 export function getAmazonTag(): string {
-  // Use environment variable with safe fallback
-  return process.env.AMAZON_TAG || 'itsmadebyhand-20';
+  // Use environment variable with safe fallback across Vite and Node
+  // @ts-ignore
+  return (typeof import.meta !== 'undefined' && import.meta.env?.AMAZON_TAG) || process.env.AMAZON_TAG || 'itsmadebyhand-20';
 }
 
 /**
