@@ -2,6 +2,7 @@ import * as cheerio from 'cheerio';
 import { upsertItem, logSystemEvent } from './db.js';
 import { formatAffiliateUrl } from './affiliate.js';
 import { evaluateArtisanAuthenticity } from '../../scripts/ingest.js';
+import { evaluateProductPictureAndCraft, enhanceImageUrl } from './vision-evaluator.js';
 
 export interface ScrapedProduct {
   asin: string;
@@ -151,18 +152,17 @@ export async function scrapeSearchQuery(
         artisan_name = 'Independent Artisan';
       }
 
-      // Quality evaluation
-      const evalResult = evaluateArtisanAuthenticity({
-        asin,
+      // Quality & Picture Evaluation via Multimodal Vision
+      const enhancedImageUrl = enhanceImageUrl(image_url);
+      const evalResult = await evaluateProductPictureAndCraft(
+        enhancedImageUrl,
         title,
-        artisan_name,
-        category: targetCategory,
-        description: title,
-        image_url,
-        price_approx: price_approx || undefined,
-      });
+        undefined,
+        targetCategory
+      );
 
-      const finalCategory = targetCategory || evalResult.inferredCategory;
+      const isApproved = evalResult.has_valid_picture && evalResult.is_handmade;
+      const finalCategory = (evalResult.category && evalResult.category !== 'Rejected') ? evalResult.category : (targetCategory || 'Home & Living');
 
       results.push({
         asin,
@@ -170,10 +170,10 @@ export async function scrapeSearchQuery(
         artisan_name,
         category: finalCategory,
         description: `Authentic handcrafted ${finalCategory.toLowerCase()} piece made by independent artisans. Verified for genuine craftsmanship and fulfilled securely by Amazon.`,
-        image_url,
+        image_url: evalResult.enhanced_image_url || enhancedImageUrl,
         price_approx,
-        approved: evalResult.approved,
-        reject_reason: evalResult.approved ? undefined : evalResult.reason,
+        approved: isApproved,
+        reject_reason: isApproved ? undefined : evalResult.reason,
       });
     }
 
@@ -260,34 +260,46 @@ export async function scrapeAndUploadCatalog(options: {
       await sleep(500);
       const details = await scrapeProductDetails(asin);
       if (details && details.title && details.image_url) {
-        const product: ScrapedProduct = {
-          asin,
-          title: details.title,
-          artisan_name: details.artisan_name || 'Independent Artisan',
-          category: 'Home & Living',
-          description: details.description || 'Authentic artisan handmade creation.',
-          image_url: details.image_url,
-          price_approx: null,
-          approved: true,
-        };
-
-        upsertItem({
-          asin: product.asin,
-          title: product.title,
-          artisan_name: product.artisan_name,
-          category: product.category,
-          description: product.description,
-          image_url: product.image_url,
-          price_approx: product.price_approx,
-          affiliate_url: formatAffiliateUrl(product.asin),
-          is_active: 1,
-          last_checked_date: now,
-        });
+        const evalResult = await evaluateProductPictureAndCraft(
+          details.image_url,
+          details.title,
+          details.description
+        );
 
         totalScraped++;
-        approvedCount++;
-        processedItems.push(product);
-        console.log(`[UPLOADED ASIN] ${asin} -> "${product.title}"`);
+
+        if (evalResult.has_valid_picture && evalResult.is_handmade) {
+          const product: ScrapedProduct = {
+            asin,
+            title: details.title,
+            artisan_name: details.artisan_name || 'Independent Artisan',
+            category: evalResult.category !== 'Rejected' ? evalResult.category : 'Home & Living',
+            description: details.description || 'Authentic artisan handmade creation.',
+            image_url: evalResult.enhanced_image_url || details.image_url,
+            price_approx: null,
+            approved: true,
+          };
+
+          upsertItem({
+            asin: product.asin,
+            title: product.title,
+            artisan_name: product.artisan_name,
+            category: product.category,
+            description: product.description,
+            image_url: product.image_url,
+            price_approx: product.price_approx,
+            affiliate_url: formatAffiliateUrl(product.asin),
+            is_active: 1,
+            last_checked_date: now,
+          });
+
+          approvedCount++;
+          processedItems.push(product);
+          console.log(`[APPROVED ASIN] ${asin} -> "${product.title}" (${product.category})`);
+        } else {
+          rejectedCount++;
+          console.warn(`[REJECTED ASIN] ${asin} -> "${details.title}" (${evalResult.reason})`);
+        }
       }
     }
   }

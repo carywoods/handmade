@@ -15,7 +15,8 @@
     "worker:check-rot": "tsx scripts/check-rot.ts",
     "worker:scrape": "tsx scripts/scrape.ts",
     "scrape": "tsx scripts/scrape.ts",
-    "db:seed": "tsx scripts/seed.ts"
+    "db:seed": "tsx scripts/seed.ts",
+    "db:audit": "tsx scripts/audit-catalog.ts"
   },
   "dependencies": {
     "@astrojs/node": "^11.1.5",

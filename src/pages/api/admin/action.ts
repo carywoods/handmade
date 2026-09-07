@@ -43,6 +43,10 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
       if (asins.length > 0) {
         await scrapeAndUploadCatalog({ customAsins: asins });
       }
+    } else if (action === 'run-audit') {
+      const prune = formData.get('prune')?.toString() === 'true';
+      const { runCatalogAudit } = await import('../../../../scripts/audit-catalog');
+      await runCatalogAudit({ pruneDeleted: prune });
     }
 
     return redirect('/admin?status=success', 302);
