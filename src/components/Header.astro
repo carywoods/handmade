@@ -1,0 +1,94 @@
+---
+import { COMPLIANCE } from '../lib/affiliate';
+
+interface Props {
+  currentCategory?: string;
+}
+
+const { currentCategory = '' } = Astro.props;
+
+const navCategories = [
+  { name: 'All Pieces', slug: '/' },
+  { name: 'Woodworking', slug: '/category/woodworking' },
+  { name: 'Pottery & Ceramics', slug: '/category/pottery-ceramics' },
+  { name: 'Leather Goods', slug: '/category/leather-goods' },
+  { name: 'Textiles', slug: '/category/textiles' },
+  { name: 'Home & Living', slug: '/category/home-living' },
+];
+---
+
+<!-- Compliance Top Bar -->
+<div class="bg-warm-100/90 border-b border-warm-200/80 text-xs py-1.5 px-4 text-center text-warm-800 tracking-wide">
+  <span class="font-medium">Independent Craftsmanship:</span> {COMPLIANCE.shortDisclosure} Fulfilled securely by Amazon.
+</div>
+
+<header class="sticky top-0 z-40 bg-warm-50/95 backdrop-blur-md border-b border-warm-200/70 transition-all">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="flex items-center justify-between h-20">
+      
+      <!-- Brand Logo -->
+      <div class="flex-shrink-0 flex flex-col">
+        <a href="/" class="group flex items-center space-x-2">
+          <span class="text-2xl sm:text-3xl font-serif tracking-tight text-warm-900 group-hover:text-clay-600 transition-colors">
+            its made by hand
+          </span>
+          <span class="inline-block w-2 h-2 rounded-full bg-clay-500 mb-1"></span>
+        </a>
+        <span class="text-[11px] font-sans tracking-widest uppercase text-warm-800/70 -mt-1 font-medium">
+          Curated Artisan Marketplace
+        </span>
+      </div>
+
+      <!-- Desktop Navigation -->
+      <nav class="hidden md:flex items-center space-x-1 lg:space-x-3 text-sm font-medium text-warm-800">
+        {navCategories.map((cat) => {
+          const isActive = currentCategory
+            ? cat.slug.toLowerCase().includes(currentCategory.toLowerCase())
+            : cat.slug === '/';
+          return (
+            <a
+              href={cat.slug}
+              class={`px-3 py-1.5 rounded-full transition-all text-xs lg:text-sm ${
+                isActive
+                  ? 'bg-clay-600 text-white shadow-sm'
+                  : 'hover:text-clay-600 hover:bg-warm-100/80 text-warm-800'
+              }`}
+            >
+              {cat.name}
+            </a>
+          );
+        })}
+      </nav>
+
+      <!-- Utility Actions (Search & Wishlist Drawer Trigger) -->
+      <div class="flex items-center space-x-3">
+        <!-- Wishlist / Bag Drawer Trigger -->
+        <button
+          id="open-wishlist-btn"
+          type="button"
+          aria-label="View queued handmade items"
+          class="relative flex items-center space-x-2 px-3.5 py-2 rounded-full border border-warm-300/80 bg-white/80 hover:bg-warm-100/90 text-warm-900 transition-all shadow-xs"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-clay-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+          </svg>
+          <span class="text-xs font-semibold uppercase tracking-wider hidden sm:inline">Wishlist</span>
+          <span
+            id="wishlist-counter-badge"
+            class="hidden items-center justify-center text-[10px] font-bold bg-clay-600 text-white rounded-full w-4 h-4"
+          >
+            0
+          </span>
+        </button>
+
+        <a
+          href="/about"
+          class="text-xs text-warm-800 hover:text-clay-600 font-medium px-2 py-1 hidden sm:inline-block transition-colors"
+        >
+          About
+        </a>
+      </div>
+
+    </div>
+  </div>
+</header>

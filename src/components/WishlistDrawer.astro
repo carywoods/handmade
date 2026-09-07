@@ -1,0 +1,309 @@
+---
+// Outbound Bag / Wishlist Drawer Component
+---
+
+<aside
+  id="wishlist-drawer"
+  class="fixed inset-0 z-50 overflow-hidden pointer-events-none transition-all duration-300"
+  aria-labelledby="slide-over-title"
+  role="dialog"
+  aria-modal="true"
+>
+  <!-- Backdrop -->
+  <div
+    id="wishlist-backdrop"
+    class="fixed inset-0 bg-warm-900/40 backdrop-blur-xs opacity-0 transition-opacity duration-300 ease-in-out"
+    aria-hidden="true"
+  ></div>
+
+  <div class="fixed inset-y-0 right-0 max-w-full flex pl-10">
+    <div
+      id="wishlist-panel"
+      class="pointer-events-auto w-screen max-w-md transform translate-x-full transition-transform duration-300 ease-in-out bg-warm-50 shadow-2xl flex flex-col border-l border-warm-200"
+    >
+      <!-- Drawer Header -->
+      <div class="p-6 border-b border-warm-200/80 flex items-center justify-between bg-white/50">
+        <div>
+          <h2 id="slide-over-title" class="text-xl font-serif text-warm-900 flex items-center gap-2">
+            <span>Artisan Wishlist</span>
+            <span id="drawer-count-pill" class="text-xs font-sans font-semibold bg-warm-200 text-warm-800 px-2 py-0.5 rounded-full">
+              0 items
+            </span>
+          </h2>
+          <p class="text-xs text-warm-800/70 mt-0.5">Queued handmade pieces ready to acquire</p>
+        </div>
+        <button
+          id="close-wishlist-btn"
+          type="button"
+          aria-label="Close wishlist drawer"
+          class="p-2 rounded-full text-warm-800/80 hover:text-warm-900 hover:bg-warm-100 transition-colors"
+        >
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <!-- Compliance Notice Inside Drawer -->
+      <div class="bg-warm-100/70 px-6 py-2.5 border-b border-warm-200/60 text-[11px] text-warm-800 flex items-center gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-clay-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <span>Direct item-level links ensure secure fulfillment and verified pricing via Amazon.</span>
+      </div>
+
+      <!-- Drawer Items Container -->
+      <div id="drawer-items-list" class="flex-1 overflow-y-auto p-6 space-y-4">
+        <!-- Injected via JavaScript -->
+      </div>
+
+      <!-- Drawer Empty State -->
+      <div id="drawer-empty-state" class="flex-1 flex flex-col items-center justify-center p-8 text-center hidden">
+        <div class="w-16 h-16 rounded-full bg-warm-100 flex items-center justify-center mb-4 text-warm-300">
+          <svg class="w-8 h-8 text-warm-800/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+          </svg>
+        </div>
+        <h3 class="font-serif text-lg text-warm-900 mb-1">Your wishlist is empty</h3>
+        <p class="text-xs text-warm-800/70 max-w-xs mb-6">
+          Explore our curated collections of woodwork, pottery, leathercraft, and textiles to save your favorite artisan goods.
+        </p>
+        <button
+          id="drawer-browse-btn"
+          type="button"
+          class="px-5 py-2.5 rounded-full bg-clay-600 hover:bg-clay-700 text-white text-xs font-semibold tracking-wide shadow-sm transition-all"
+        >
+          Explore Handmade Catalog
+        </button>
+      </div>
+
+      <!-- Drawer Footer -->
+      <div id="drawer-footer-actions" class="p-6 bg-white/70 border-t border-warm-200/80 space-y-3">
+        <div class="flex items-center justify-between text-sm">
+          <span class="text-warm-800 font-medium">Estimated Total</span>
+          <span id="drawer-subtotal" class="font-serif text-lg font-bold text-warm-900">$0.00</span>
+        </div>
+
+        <div class="space-y-2 pt-2">
+          <button
+            id="proceed-all-tabs-btn"
+            type="button"
+            class="w-full flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-warm-900 hover:bg-black text-white text-sm font-semibold tracking-wide shadow-sm transition-all"
+          >
+            <span>Proceed to Amazon (Open All Tabs)</span>
+            <svg class="w-4 h-4 text-clay-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+            </svg>
+          </button>
+
+          <button
+            id="clear-wishlist-btn"
+            type="button"
+            class="w-full text-center text-xs text-warm-800/70 hover:text-clay-600 transition-colors py-1"
+          >
+            Clear Wishlist
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</aside>
+
+<script>
+  interface QueuedItem {
+    asin: string;
+    title: string;
+    artisan_name: string;
+    price: number;
+    image_url: string;
+    affiliate_url: string;
+  }
+
+  const STORAGE_KEY = 'imh_artisan_wishlist';
+
+  function getStoredWishlist(): QueuedItem[] {
+    try {
+      const data = localStorage.getItem(STORAGE_KEY);
+      return data ? JSON.parse(data) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  function saveWishlist(items: QueuedItem[]) {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+    } catch (e) {
+      console.error('Failed to save wishlist', e);
+    }
+    updateUI();
+  }
+
+  function toggleDrawer(open: boolean) {
+    const drawer = document.getElementById('wishlist-drawer');
+    const backdrop = document.getElementById('wishlist-backdrop');
+    const panel = document.getElementById('wishlist-panel');
+
+    if (!drawer || !backdrop || !panel) return;
+
+    if (open) {
+      drawer.classList.remove('pointer-events-none');
+      backdrop.classList.remove('opacity-0');
+      backdrop.classList.add('opacity-100');
+      panel.classList.remove('translate-x-full');
+      panel.classList.add('translate-x-0');
+      document.body.style.overflow = 'hidden';
+    } else {
+      drawer.classList.add('pointer-events-none');
+      backdrop.classList.remove('opacity-100');
+      backdrop.classList.add('opacity-0');
+      panel.classList.remove('translate-x-0');
+      panel.classList.add('translate-x-full');
+      document.body.style.overflow = '';
+    }
+  }
+
+  function renderItems(items: QueuedItem[]) {
+    const listContainer = document.getElementById('drawer-items-list');
+    const emptyState = document.getElementById('drawer-empty-state');
+    const footerActions = document.getElementById('drawer-footer-actions');
+    const subtotalEl = document.getElementById('drawer-subtotal');
+    const countPill = document.getElementById('drawer-count-pill');
+    const badge = document.getElementById('wishlist-counter-badge');
+
+    if (!listContainer || !emptyState || !footerActions || !subtotalEl || !countPill || !badge) return;
+
+    // Update counter badge on header
+    if (items.length > 0) {
+      badge.textContent = String(items.length);
+      badge.classList.remove('hidden');
+      badge.classList.add('flex');
+    } else {
+      badge.classList.add('hidden');
+      badge.classList.remove('flex');
+    }
+
+    countPill.textContent = `${items.length} ${items.length === 1 ? 'item' : 'items'}`;
+
+    if (items.length === 0) {
+      listContainer.innerHTML = '';
+      emptyState.classList.remove('hidden');
+      footerActions.classList.add('hidden');
+      return;
+    }
+
+    emptyState.classList.add('hidden');
+    footerActions.classList.remove('hidden');
+
+    let total = 0;
+    listContainer.innerHTML = items
+      .map((item, index) => {
+        total += item.price || 0;
+        return `
+        <div class="flex gap-3.5 p-3 rounded-xl bg-white border border-warm-200/80 shadow-xs relative group">
+          <img
+            src="${item.image_url}"
+            alt="${item.title}"
+            class="w-20 h-20 object-cover rounded-lg bg-warm-100 border border-warm-200/50 flex-shrink-0"
+          />
+          <div class="flex-1 flex flex-col justify-between min-w-0 pr-6">
+            <div>
+              <span class="text-[10px] uppercase font-bold text-clay-600 tracking-wider block">
+                ${item.artisan_name || 'Artisan Crafted'}
+              </span>
+              <h4 class="text-xs font-serif text-warm-900 line-clamp-2 leading-snug mt-0.5">
+                ${item.title}
+              </h4>
+            </div>
+            <div class="flex items-center justify-between mt-2 pt-1 border-t border-warm-100">
+              <span class="text-xs font-semibold text-warm-900">
+                ${item.price ? '$' + Number(item.price).toFixed(2) : 'Check Amazon'}
+              </span>
+              <a
+                href="/api/click?asin=${encodeURIComponent(item.asin)}"
+                target="_blank"
+                rel="nofollow noopener"
+                class="inline-flex items-center gap-1 text-[11px] font-semibold text-clay-600 hover:text-clay-700 bg-clay-50 hover:bg-clay-100 px-2 py-1 rounded-md transition-colors"
+              >
+                <span>Buy on Amazon</span>
+                <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                </svg>
+              </a>
+            </div>
+          </div>
+          <!-- Remove Item Button -->
+          <button
+            data-remove-asin="${item.asin}"
+            class="remove-item-btn absolute top-2 right-2 text-warm-400 hover:text-warm-800 p-1 rounded-full transition-colors"
+            title="Remove item"
+            aria-label="Remove item"
+          >
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      `;
+      })
+      .join('');
+
+    subtotalEl.textContent = `$${total.toFixed(2)}`;
+
+    // Attach remove handlers
+    document.querySelectorAll('.remove-item-btn').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        const asin = (e.currentTarget as HTMLElement).getAttribute('data-remove-asin');
+        if (asin) {
+          const updated = getStoredWishlist().filter((i) => i.asin !== asin);
+          saveWishlist(updated);
+        }
+      });
+    });
+  }
+
+  function updateUI() {
+    const items = getStoredWishlist();
+    renderItems(items);
+  }
+
+  // Global event listener for "add-to-wishlist" buttons
+  window.addEventListener('add-artisan-item', (event: any) => {
+    const item: QueuedItem = event.detail;
+    const current = getStoredWishlist();
+    if (!current.some((i) => i.asin === item.asin)) {
+      current.push(item);
+      saveWishlist(current);
+    }
+    toggleDrawer(true);
+  });
+
+  // Setup DOM listeners
+  function initDrawer() {
+    document.getElementById('open-wishlist-btn')?.addEventListener('click', () => toggleDrawer(true));
+    document.getElementById('close-wishlist-btn')?.addEventListener('click', () => toggleDrawer(false));
+    document.getElementById('wishlist-backdrop')?.addEventListener('click', () => toggleDrawer(false));
+    document.getElementById('drawer-browse-btn')?.addEventListener('click', () => toggleDrawer(false));
+
+    document.getElementById('clear-wishlist-btn')?.addEventListener('click', () => {
+      saveWishlist([]);
+    });
+
+    document.getElementById('proceed-all-tabs-btn')?.addEventListener('click', () => {
+      const items = getStoredWishlist();
+      items.forEach((item) => {
+        window.open(`/api/click?asin=${encodeURIComponent(item.asin)}`, '_blank');
+      });
+    });
+
+    updateUI();
+  }
+
+  // Init on DOM load
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initDrawer);
+  } else {
+    initDrawer();
+  }
+</script>

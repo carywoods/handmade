@@ -1,0 +1,191 @@
+---
+import Layout from '../layouts/Layout.astro';
+import ProductCard from '../components/ProductCard.astro';
+import { getItems, getCategoriesWithCounts } from '../lib/db';
+
+const search = Astro.url.searchParams.get('q') || '';
+const category = Astro.url.searchParams.get('category') || 'all';
+const sort = (Astro.url.searchParams.get('sort') as 'newest' | 'price_asc' | 'price_desc') || 'newest';
+
+const { items, total } = getItems({
+  category: category !== 'all' ? category : undefined,
+  search: search || undefined,
+  sortBy: sort,
+  activeOnly: true,
+  limit: 36,
+});
+
+const categoryList = [
+  { name: 'All Pieces', id: 'all' },
+  { name: 'Woodworking', id: 'woodworking' },
+  { name: 'Pottery & Ceramics', id: 'pottery & ceramics' },
+  { name: 'Leather Goods', id: 'leather goods' },
+  { name: 'Textiles', id: 'textiles' },
+  { name: 'Home & Living', id: 'home & living' },
+];
+---
+
+<Layout title="its made by hand | Authentic Independent Craftsmanship">
+  <!-- Hero Section -->
+  <section class="relative overflow-hidden bg-warm-100/60 border-b border-warm-200/80 py-16 sm:py-24">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+      <div class="max-w-3xl">
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/80 border border-warm-200/60 text-xs font-semibold text-clay-700 uppercase tracking-widest mb-6">
+          <span class="w-2 h-2 rounded-full bg-clay-500 animate-pulse"></span>
+          Pure Artisan Craftsmanship
+        </div>
+        <h1 class="text-4xl sm:text-5xl lg:text-6xl font-serif text-warm-900 tracking-tight leading-[1.12]">
+          Genuine craft. <br />
+          <span class="italic font-normal text-warm-800/80">Zero mass production.</span>
+        </h1>
+        <p class="mt-6 text-base sm:text-lg text-warm-800/80 font-normal leading-relaxed max-w-2xl">
+          A dedicated sanctuary for heirloom woodworking, wheel-thrown stoneware, vegetable-tanned leather, and handwoven textiles. Every piece is made by independent hands and fulfilled reliably.
+        </p>
+      </div>
+    </div>
+
+    <!-- Decorative subtle organic gradient -->
+    <div class="absolute -right-32 -bottom-32 w-96 h-96 rounded-full bg-clay-500/5 blur-3xl pointer-events-none"></div>
+  </section>
+
+  <!-- Filter & Browse Bar -->
+  <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-6">
+    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6 pb-6 border-b border-warm-200/80">
+      
+      <!-- Category Pills -->
+      <div class="flex flex-wrap items-center gap-2">
+        {categoryList.map((cat) => {
+          const isSelected = category.toLowerCase() === cat.id.toLowerCase();
+          const targetUrl = cat.id === 'all' ? '/' : `/?category=${encodeURIComponent(cat.id)}`;
+          return (
+            <a
+              href={targetUrl}
+              class={`px-4 py-2 rounded-full text-xs font-medium tracking-wide transition-all ${
+                isSelected
+                  ? 'bg-warm-900 text-white shadow-sm'
+                  : 'bg-white hover:bg-warm-200/60 text-warm-800 border border-warm-200/80'
+              }`}
+            >
+              {cat.name}
+            </a>
+          );
+        })}
+      </div>
+
+      <!-- Search & Sorting Controls -->
+      <form method="GET" class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+        {category !== 'all' && <input type="hidden" name="category" value={category} />}
+        
+        <div class="relative flex-1 sm:w-64">
+          <input
+            type="text"
+            name="q"
+            value={search}
+            placeholder="Search by craft, wood, clay..."
+            class="w-full pl-9 pr-4 py-2 rounded-xl bg-white border border-warm-200/80 text-xs text-warm-900 placeholder-warm-400 focus:outline-none focus:ring-2 focus:ring-clay-500/40 focus:border-clay-500"
+          />
+          <svg
+            class="w-4 h-4 text-warm-400 absolute left-3 top-2.5"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+        </div>
+
+        <select
+          name="sort"
+          onchange="this.form.submit()"
+          class="py-2 pl-3 pr-8 rounded-xl bg-white border border-warm-200/80 text-xs text-warm-800 focus:outline-none focus:ring-2 focus:ring-clay-500/40"
+        >
+          <option value="newest" selected={sort === 'newest'}>Newest Additions</option>
+          <option value="price_asc" selected={sort === 'price_asc'}>Price: Low to High</option>
+          <option value="price_desc" selected={sort === 'price_desc'}>Price: High to Low</option>
+        </select>
+      </form>
+
+    </div>
+
+    <!-- Catalog Status Bar -->
+    <div class="py-4 flex items-center justify-between text-xs text-warm-800/70">
+      <span>
+        Showing <strong class="text-warm-900 font-semibold">{items.length}</strong> of{' '}
+        <strong class="text-warm-900 font-semibold">{total}</strong> verified handmade pieces
+        {search && <span> matching "<em>{search}</em>"</span>}
+      </span>
+      {category !== 'all' && (
+        <a href="/" class="text-clay-600 hover:underline">
+          Clear category filter &times;
+        </a>
+      )}
+    </div>
+  </section>
+
+  <!-- Product Grid -->
+  <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-20">
+    {items.length === 0 ? (
+      <div class="py-20 text-center bg-white rounded-2xl border border-warm-200 p-8">
+        <h3 class="font-serif text-xl text-warm-900 mb-2">No handmade goods found</h3>
+        <p class="text-xs text-warm-800/70 max-w-sm mx-auto mb-6">
+          We couldn't find any artisan pieces matching your criteria. Try loosening your search terms or clearing your filters.
+        </p>
+        <a
+          href="/"
+          class="inline-block px-5 py-2.5 rounded-full bg-clay-600 hover:bg-clay-700 text-white text-xs font-semibold tracking-wide transition-colors"
+        >
+          View All Artisan Pieces
+        </a>
+      </div>
+    ) : (
+      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 sm:gap-8">
+        {items.map((item) => (
+          <ProductCard item={item} />
+        ))}
+      </div>
+    )}
+  </section>
+
+  <!-- Artisan Guarantee Feature Banner -->
+  <section class="bg-warm-200/40 border-t border-b border-warm-200/70 py-16">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-8 text-center sm:text-left">
+        <div class="space-y-2">
+          <div class="w-10 h-10 rounded-xl bg-warm-100 border border-warm-300 flex items-center justify-center text-clay-600 mb-3 mx-auto sm:mx-0">
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+            </svg>
+          </div>
+          <h3 class="font-serif text-lg text-warm-900">Screened for True Craft</h3>
+          <p class="text-xs text-warm-800/80 leading-relaxed">
+            Every candidate item undergoes automated screening to filter out factory bulk sellers, mass dropshippers, and artificial crafts.
+          </p>
+        </div>
+
+        <div class="space-y-2">
+          <div class="w-10 h-10 rounded-xl bg-warm-100 border border-warm-300 flex items-center justify-center text-clay-600 mb-3 mx-auto sm:mx-0">
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <h3 class="font-serif text-lg text-warm-900">Active Link-Rot Shield</h3>
+          <p class="text-xs text-warm-800/80 leading-relaxed">
+            Automated weekly scans verify item availability. Sold-out or defunct listings are automatically pruned to guarantee zero dead links.
+          </p>
+        </div>
+
+        <div class="space-y-2">
+          <div class="w-10 h-10 rounded-xl bg-warm-100 border border-warm-300 flex items-center justify-center text-clay-600 mb-3 mx-auto sm:mx-0">
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+          <h3 class="font-serif text-lg text-warm-900">Direct Amazon Fulfillment</h3>
+          <p class="text-xs text-warm-800/80 leading-relaxed">
+            Support authentic makers while enjoying Amazon's safe checkout, buyer protection, fast delivery, and trusted return policies.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+</Layout>

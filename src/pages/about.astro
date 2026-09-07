@@ -1,0 +1,65 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { COMPLIANCE } from '../lib/affiliate';
+---
+
+<Layout
+  title="Our Philosophy & Transparency | its made by hand"
+  description="Learn about our curation criteria, rejection of mass-production, and our transparent Amazon Associates affiliate model."
+>
+  <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24">
+    
+    <!-- Title -->
+    <div class="text-center max-w-2xl mx-auto mb-16">
+      <span class="text-xs uppercase font-bold tracking-widest text-clay-700 block mb-2">Our Manifesto</span>
+      <h1 class="text-3xl sm:text-5xl font-serif text-warm-900 tracking-tight">
+        A quiet sanctuary for true craftsmanship.
+      </h1>
+      <p class="mt-4 text-base text-warm-800/80 leading-relaxed">
+        The internet is flooded with factory plastics, drop-shipped knockoffs, and mass-market algorithms masquerading as handmade goods. We built <span class="font-medium text-warm-900">itsmadebyhand.com</span> to restore signal to craft.
+      </p>
+    </div>
+
+    <!-- Editorial Sections -->
+    <div class="space-y-14">
+      
+      <!-- Section 1 -->
+      <section class="p-8 rounded-2xl bg-white border border-warm-200/80 space-y-4 shadow-xs">
+        <h2 class="text-xl font-serif text-warm-900">The Curation Standard</h2>
+        <p class="text-sm text-warm-800/80 leading-relaxed">
+          Every piece highlighted on our platform must demonstrate identifiable craft attributes: hand-carved end-grain hardwoods, wheel-thrown stoneware ceramics, vegetable-tanned and saddle-stitched leather, and shuttle-loomed natural fibers.
+        </p>
+        <p class="text-sm text-warm-800/80 leading-relaxed">
+          Our background vetting workers actively screen incoming candidate listings against wholesale supplier databases, bulk keywords, and factory-injection indicators to ensure only authentic makers make it to your screen.
+        </p>
+      </section>
+
+      <!-- Section 2 -->
+      <section class="p-8 rounded-2xl bg-white border border-warm-200/80 space-y-4 shadow-xs">
+        <h2 class="text-xl font-serif text-warm-900">Zero Link-Rot & Operational Reliability</h2>
+        <p class="text-sm text-warm-800/80 leading-relaxed">
+          Few online experiences are more frustrating than falling in love with a piece only to encounter a 404 or dead link. Our automated link-rot shield scans our entire catalog weekly. If an artisan's listing concludes or is retired, our platform automatically updates its index.
+        </p>
+      </section>
+
+      <!-- Section 3: Transparency & Affiliate Disclosure -->
+      <section id="transparency" class="p-8 rounded-2xl bg-warm-100/70 border border-warm-300/80 space-y-4">
+        <h2 class="text-xl font-serif text-warm-900">Affiliate & Compliance Transparency</h2>
+        <p class="text-sm text-warm-800/80 leading-relaxed">
+          {COMPLIANCE.fullDisclosure}
+        </p>
+        <div class="bg-white/90 p-4 rounded-xl border border-warm-200 text-xs text-warm-800/90 space-y-2">
+          <h4 class="font-semibold text-warm-900 uppercase tracking-wider text-[11px]">How We Operate:</h4>
+          <ul class="list-disc list-inside space-y-1 text-warm-800/80">
+            <li>We do <strong>not</strong> process payments or hold customer credit card information on this site.</li>
+            <li>All transactions, checkout security, customer service, and deliveries are handled directly by Amazon.</li>
+            <li>Outbound links contain an Amazon tracking tag which may earn us an affiliate referral commission at no additional cost to you.</li>
+            <li>Prices listed on our site are approximate estimates based on recent data and are confirmed upon reaching Amazon's product page.</li>
+          </ul>
+        </div>
+      </section>
+
+    </div>
+
+  </div>
+</Layout>

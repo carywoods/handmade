@@ -1,0 +1,61 @@
+---
+import { COMPLIANCE } from '../lib/affiliate';
+
+const currentYear = new Date().getFullYear();
+---
+
+<footer class="bg-warm-100/90 border-t border-warm-200 mt-24 text-warm-800 text-sm">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+      
+      <!-- Brand & Mission Column -->
+      <div class="md:col-span-2 space-y-4 pr-0 md:pr-8">
+        <div class="flex items-center space-x-2">
+          <span class="text-2xl font-serif tracking-tight text-warm-900">its made by hand</span>
+          <span class="w-1.5 h-1.5 rounded-full bg-clay-500"></span>
+        </div>
+        <p class="text-xs sm:text-sm text-warm-800/80 leading-relaxed max-w-lg">
+          We curate the finest independent craftsmanship from verified artisans across woodworking, ceramics, leather goods, textiles, and home furnishings. Filtered against mass production so every piece carries a maker's hand.
+        </p>
+        <div class="p-3.5 bg-warm-200/50 rounded-lg text-xs leading-relaxed text-warm-900 border border-warm-300/40">
+          <strong class="font-semibold block mb-0.5">Amazon Associates Disclosure:</strong>
+          {COMPLIANCE.fullDisclosure}
+        </div>
+      </div>
+
+      <!-- Categories Column -->
+      <div>
+        <h4 class="text-xs font-semibold uppercase tracking-wider text-warm-900 mb-3.5">Categories</h4>
+        <ul class="space-y-2 text-xs text-warm-800/80">
+          <li><a href="/category/woodworking" class="hover:text-clay-600 transition-colors">Woodworking</a></li>
+          <li><a href="/category/pottery-ceramics" class="hover:text-clay-600 transition-colors">Pottery & Ceramics</a></li>
+          <li><a href="/category/leather-goods" class="hover:text-clay-600 transition-colors">Leather Goods</a></li>
+          <li><a href="/category/textiles" class="hover:text-clay-600 transition-colors">Textiles & Fiber</a></li>
+          <li><a href="/category/home-living" class="hover:text-clay-600 transition-colors">Home & Living</a></li>
+        </ul>
+      </div>
+
+      <!-- Information & Operations -->
+      <div>
+        <h4 class="text-xs font-semibold uppercase tracking-wider text-warm-900 mb-3.5">Platform</h4>
+        <ul class="space-y-2 text-xs text-warm-800/80">
+          <li><a href="/about" class="hover:text-clay-600 transition-colors">Our Artisan Mission</a></li>
+          <li><a href="/about#transparency" class="hover:text-clay-600 transition-colors">Affiliate Transparency</a></li>
+          <li><a href="/admin" class="hover:text-clay-600 transition-colors flex items-center gap-1.5">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+            Operator Dashboard
+          </a></li>
+        </ul>
+      </div>
+
+    </div>
+
+    <!-- Bottom Bar -->
+    <div class="pt-8 mt-8 border-t border-warm-200/80 flex flex-col sm:flex-row justify-between items-center text-xs text-warm-800/70 gap-3">
+      <p>&copy; {currentYear} itsmadebyhand.com. All rights reserved. Artisan goods fulfilled directly by Amazon.</p>
+      <p class="text-[11px]">Zero mass production. 100% curated craftsmanship.</p>
+    </div>
+  </div>
+</footer>

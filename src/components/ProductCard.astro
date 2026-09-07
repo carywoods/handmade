@@ -1,0 +1,125 @@
+---
+import type { Item } from '../lib/db';
+import { formatTrackedClickUrl } from '../lib/affiliate';
+
+interface Props {
+  item: Item;
+}
+
+const { item } = Astro.props;
+const trackedUrl = formatTrackedClickUrl(item.asin);
+const detailUrl = `/item/${item.asin}`;
+---
+
+<article class="group relative flex flex-col bg-white rounded-2xl border border-warm-200/80 overflow-hidden hover:shadow-lg hover:border-warm-300 transition-all duration-300">
+  
+  <!-- Product Image & Badges -->
+  <div class="relative aspect-square w-full overflow-hidden bg-warm-100">
+    <a href={detailUrl} class="block w-full h-full">
+      <img
+        src={item.image_url}
+        alt={item.title}
+        loading="lazy"
+        class="h-full w-full object-cover object-center group-hover:scale-105 transition-transform duration-500 ease-out"
+      />
+    </a>
+    
+    <!-- Category Badge -->
+    <div class="absolute top-3 left-3">
+      <a
+        href={`/category/${encodeURIComponent(item.category.toLowerCase().replace(/\s+/g, '-'))}`}
+        class="inline-block text-[10px] uppercase font-bold tracking-wider px-2.5 py-1 rounded-full bg-white/90 backdrop-blur-xs text-warm-800 shadow-xs border border-warm-200/40 hover:bg-white transition-colors"
+      >
+        {item.category}
+      </a>
+    </div>
+
+    <!-- Quick Add to Wishlist Button -->
+    <button
+      type="button"
+      data-asin={item.asin}
+      data-title={item.title}
+      data-artisan={item.artisan_name || ''}
+      data-price={item.price_approx || 0}
+      data-image={item.image_url}
+      data-url={item.affiliate_url}
+      class="quick-add-btn absolute top-3 right-3 w-8 h-8 rounded-full bg-white/90 backdrop-blur-xs flex items-center justify-center text-warm-700 hover:text-clay-600 hover:bg-white shadow-xs border border-warm-200/40 transition-all"
+      aria-label="Add to Wishlist"
+      title="Add to Artisan Wishlist"
+    >
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+      </svg>
+    </button>
+  </div>
+
+  <!-- Content Section -->
+  <div class="p-5 flex-1 flex flex-col justify-between">
+    <div>
+      <!-- Maker / Artisan Attribution -->
+      <div class="flex items-center gap-1.5 text-xs text-warm-800/80 mb-1">
+        <span class="w-1.5 h-1.5 rounded-full bg-clay-500/70"></span>
+        <span class="font-medium text-warm-800">{item.artisan_name || 'Independent Artisan'}</span>
+      </div>
+
+      <!-- Title -->
+      <h3 class="font-serif text-base sm:text-lg text-warm-900 line-clamp-2 leading-snug group-hover:text-clay-700 transition-colors">
+        <a href={detailUrl}>
+          {item.title}
+        </a>
+      </h3>
+
+      {item.description && (
+        <p class="mt-2 text-xs text-warm-800/70 line-clamp-2 leading-relaxed">
+          {item.description}
+        </p>
+      )}
+    </div>
+
+    <!-- Footer Row: Price & Outbound CTA -->
+    <div class="mt-4 pt-3.5 border-t border-warm-100 flex items-center justify-between">
+      <div>
+        <span class="text-[11px] block uppercase tracking-wider text-warm-800/60 font-medium">Approx. Price</span>
+        <span class="font-serif text-base sm:text-lg font-bold text-warm-900">
+          {item.price_approx ? `$${item.price_approx.toFixed(2)}` : 'See Listing'}
+        </span>
+      </div>
+
+      <a
+        href={trackedUrl}
+        target="_blank"
+        rel="nofollow noopener"
+        class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-warm-100 hover:bg-clay-600 text-warm-900 hover:text-white text-xs font-semibold tracking-wide transition-all shadow-xs"
+      >
+        <span>Amazon</span>
+        <svg class="w-3.5 h-3.5 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+        </svg>
+      </a>
+    </div>
+
+  </div>
+</article>
+
+<script>
+  document.querySelectorAll('.quick-add-btn').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const el = e.currentTarget as HTMLElement;
+      const detail = {
+        asin: el.dataset.asin,
+        title: el.dataset.title,
+        artisan_name: el.dataset.artisan,
+        price: parseFloat(el.dataset.price || '0'),
+        image_url: el.dataset.image,
+        affiliate_url: el.dataset.url,
+      };
+
+      window.dispatchEvent(
+        new CustomEvent('add-artisan-item', {
+          detail,
+        })
+      );
+    });
+  });
+</script>

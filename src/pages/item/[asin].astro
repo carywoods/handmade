@@ -1,0 +1,199 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import ProductCard from '../../components/ProductCard.astro';
+import { getItemByAsin, getRelatedItems } from '../../lib/db';
+import { formatTrackedClickUrl, COMPLIANCE } from '../../lib/affiliate';
+
+const { asin } = Astro.params;
+
+if (!asin) {
+  return Astro.redirect('/', 302);
+}
+
+const item = getItemByAsin(asin);
+
+if (!item) {
+  return Astro.redirect('/', 302);
+}
+
+const relatedItems = getRelatedItems(item.asin, item.category, 4);
+const trackedUrl = formatTrackedClickUrl(item.asin);
+const categorySlug = item.category.toLowerCase().replace(/\s+/g, '-');
+---
+
+<Layout
+  title={`${item.title} | its made by hand`}
+  description={item.description || `Handcrafted ${item.title} by ${item.artisan_name || 'artisan'}.`}
+  image={item.image_url}
+  type="product"
+>
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+    
+    <!-- Breadcrumbs -->
+    <nav class="flex items-center space-x-2 text-xs text-warm-800/70 mb-8">
+      <a href="/" class="hover:text-clay-600 transition-colors">Catalog</a>
+      <span>/</span>
+      <a href={`/category/${categorySlug}`} class="hover:text-clay-600 transition-colors">
+        {item.category}
+      </a>
+      <span>/</span>
+      <span class="text-warm-900 font-medium truncate max-w-xs">{item.title}</span>
+    </nav>
+
+    <!-- Product Layout -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14">
+      
+      <!-- Photography Gallery Frame -->
+      <div class="lg:col-span-7">
+        <div class="aspect-square rounded-2xl overflow-hidden bg-white border border-warm-200 shadow-sm relative group">
+          <img
+            src={item.image_url}
+            alt={item.title}
+            class="w-full h-full object-cover object-center"
+          />
+          <span class="absolute bottom-4 left-4 text-[11px] font-medium bg-white/90 backdrop-blur-md px-3 py-1 rounded-full border border-warm-200 text-warm-800">
+            ASIN: {item.asin}
+          </span>
+        </div>
+      </div>
+
+      <!-- Details & Actions -->
+      <div class="lg:col-span-5 flex flex-col justify-between">
+        <div class="space-y-6">
+          
+          <!-- Category & Artisan Header -->
+          <div>
+            <div class="flex items-center gap-2 mb-2">
+              <a
+                href={`/category/${categorySlug}`}
+                class="text-xs font-bold uppercase tracking-wider text-clay-700 hover:text-clay-800"
+              >
+                {item.category}
+              </a>
+              <span class="text-warm-300">&bull;</span>
+              <span class="text-xs text-warm-800/70">Verified Artisan Work</span>
+            </div>
+
+            <h1 class="font-serif text-2xl sm:text-3xl lg:text-4xl text-warm-900 leading-tight">
+              {item.title}
+            </h1>
+
+            <div class="mt-3 flex items-center gap-2 text-sm text-warm-800/90">
+              <span class="font-medium">Maker:</span>
+              <span class="font-semibold text-warm-900">{item.artisan_name || 'Independent Artisan Studio'}</span>
+            </div>
+          </div>
+
+          <!-- Price -->
+          <div class="p-4 rounded-xl bg-warm-100/70 border border-warm-200/80 flex items-center justify-between">
+            <div>
+              <span class="text-[11px] block uppercase font-medium tracking-wider text-warm-800/70">Estimated Price</span>
+              <span class="font-serif text-2xl font-bold text-warm-900">
+                {item.price_approx ? `$${item.price_approx.toFixed(2)}` : 'Check Amazon Listing'}
+              </span>
+            </div>
+            <span class="text-xs text-warm-800/80 bg-white/90 px-3 py-1.5 rounded-lg border border-warm-200/50">
+              In Stock & Verified
+            </span>
+          </div>
+
+          <!-- Description / Artisan Story -->
+          {item.description && (
+            <div class="space-y-2">
+              <h3 class="text-xs uppercase font-bold tracking-wider text-warm-900">Craft Details</h3>
+              <p class="text-sm text-warm-800/80 leading-relaxed">
+                {item.description}
+              </p>
+            </div>
+          )}
+
+          <!-- Action Buttons -->
+          <div class="space-y-3 pt-2">
+            <!-- Primary Outbound CTA -->
+            <a
+              href={trackedUrl}
+              target="_blank"
+              rel="nofollow noopener"
+              class="w-full flex items-center justify-center gap-2 py-3.5 px-6 rounded-xl bg-clay-600 hover:bg-clay-700 text-white font-semibold text-sm tracking-wide shadow-md transition-all group"
+            >
+              <span>View & Buy on Amazon</span>
+              <svg class="w-4 h-4 transform group-hover:translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+              </svg>
+            </a>
+
+            <!-- Secondary Drawer CTA -->
+            <button
+              id="detail-add-wishlist-btn"
+              type="button"
+              data-asin={item.asin}
+              data-title={item.title}
+              data-artisan={item.artisan_name || ''}
+              data-price={item.price_approx || 0}
+              data-image={item.image_url}
+              data-url={item.affiliate_url}
+              class="w-full flex items-center justify-center gap-2 py-3.5 px-6 rounded-xl bg-white hover:bg-warm-100 text-warm-900 font-semibold text-sm border border-warm-300 transition-all shadow-xs"
+            >
+              <svg class="w-4 h-4 text-clay-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+              </svg>
+              <span>Save to Artisan Wishlist</span>
+            </button>
+          </div>
+
+          <!-- Compliance Callout -->
+          <div class="p-3.5 bg-warm-100/50 rounded-xl border border-warm-200/60 text-xs text-warm-800/80 leading-relaxed">
+            <strong class="text-warm-900 block font-medium mb-0.5">Fulfillment Transparency:</strong>
+            {COMPLIANCE.fulfillmentNotice} {COMPLIANCE.shortDisclosure}
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- Related Artisan Goods -->
+    {relatedItems.length > 0 && (
+      <section class="mt-20 pt-12 border-t border-warm-200">
+        <div class="flex items-center justify-between mb-8">
+          <h2 class="font-serif text-2xl text-warm-900">
+            More {item.category} Handcrafts
+          </h2>
+          <a
+            href={`/category/${categorySlug}`}
+            class="text-xs font-semibold text-clay-700 hover:text-clay-800"
+          >
+            Explore Category &rarr;
+          </a>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+          {relatedItems.map((rel) => (
+            <ProductCard item={rel} />
+          ))}
+        </div>
+      </section>
+    )}
+
+  </div>
+</Layout>
+
+<script>
+  document.getElementById('detail-add-wishlist-btn')?.addEventListener('click', (e) => {
+    const el = e.currentTarget as HTMLElement;
+    const detail = {
+      asin: el.dataset.asin,
+      title: el.dataset.title,
+      artisan_name: el.dataset.artisan,
+      price: parseFloat(el.dataset.price || '0'),
+      image_url: el.dataset.image,
+      affiliate_url: el.dataset.url,
+    };
+
+    window.dispatchEvent(
+      new CustomEvent('add-artisan-item', {
+        detail,
+      })
+    );
+  });
+</script>
