@@ -24,10 +24,11 @@ ENV PORT=3000
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev && npm install -g tsx
 
-# Copy built server assets and scripts
+# Copy built server assets, data, and scripts
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/scripts ./scripts
 COPY --from=build /app/src/lib ./src/lib
+COPY --from=build /app/data ./data
 
 # Ensure data directory exists and declare volume for persistent SQLite
 RUN mkdir -p /app/data
