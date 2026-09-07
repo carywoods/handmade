@@ -88,101 +88,117 @@ export async function scrapeSearchQuery(
   maxItems = 10
 ): Promise<ScrapedProduct[]> {
   const encodedQuery = encodeURIComponent(query);
-  const searchUrl = `https://www.amazon.com/s?k=${encodedQuery}&i=handmade`;
+  const results: ScrapedProduct[] = [];
+  let page = 1;
+  const maxPages = Math.min(5, Math.ceil(maxItems / 10) + 1);
 
-  console.log(`[SCRAPER] Querying Amazon Handmade: "${query}"...`);
+  while (results.length < maxItems && page <= maxPages) {
+    const searchUrl = `https://www.amazon.com/s?k=${encodedQuery}&i=handmade${page > 1 ? `&page=${page}` : ''}`;
+    console.log(`[SCRAPER] Querying Amazon Handmade: "${query}" (Page ${page})...`);
 
-  try {
-    const res = await fetch(searchUrl, {
-      headers: getRandomHeaders(),
-    });
-
-    if (res.status === 503 || res.status === 429) {
-      console.warn(`[SCRAPER] Amazon rate limited/challenged (${res.status}) on query "${query}"`);
-      return [];
-    }
-
-    if (!res.ok) {
-      console.warn(`[SCRAPER] Amazon search returned status ${res.status} for query "${query}"`);
-      return [];
-    }
-
-    const html = await res.text();
-    const $ = cheerio.load(html);
-    const results: ScrapedProduct[] = [];
-
-    const items = $('[data-asin]').toArray();
-
-    for (const el of items) {
-      if (results.length >= maxItems) break;
-
-      const asin = $(el).attr('data-asin')?.trim();
-      if (!asin || asin.length !== 10) continue;
-
-      // Extract title
-      const title =
-        $(el).find('h2 span').text().trim() ||
-        $(el).find('.a-text-normal').text().trim() ||
-        $(el).find('h2 a').text().trim();
-
-      if (!title || title.length < 5) continue;
-
-      // Extract image
-      const image_url = $(el).find('img.s-image').attr('src');
-      if (!image_url || !image_url.startsWith('http')) continue;
-
-      // Extract price
-      const priceText = $(el).find('.a-price .a-offscreen').first().text().trim();
-      let price_approx: number | null = null;
-      if (priceText) {
-        const num = parseFloat(priceText.replace(/[^0-9.]/g, ''));
-        if (!isNaN(num) && num > 0) {
-          price_approx = num;
-        }
-      }
-
-      // Extract artisan / brand
-      let artisan_name = $(el)
-        .find('.a-row.a-size-base.a-color-secondary span, .s-line-clamp-1, h5 span')
-        .first()
-        .text()
-        .trim();
-
-      if (!artisan_name || artisan_name.toLowerCase().includes('prime') || artisan_name.length < 2) {
-        artisan_name = 'Independent Artisan';
-      }
-
-      // Quality & Picture Evaluation via Multimodal Vision
-      const enhancedImageUrl = enhanceImageUrl(image_url);
-      const evalResult = await evaluateProductPictureAndCraft(
-        enhancedImageUrl,
-        title,
-        undefined,
-        targetCategory
-      );
-
-      const isApproved = evalResult.has_valid_picture && evalResult.is_handmade;
-      const finalCategory = (evalResult.category && evalResult.category !== 'Rejected') ? evalResult.category : (targetCategory || 'Home & Living');
-
-      results.push({
-        asin,
-        title,
-        artisan_name,
-        category: finalCategory,
-        description: `Authentic handcrafted ${finalCategory.toLowerCase()} piece made by independent artisans. Verified for genuine craftsmanship and fulfilled securely by Amazon.`,
-        image_url: evalResult.enhanced_image_url || enhancedImageUrl,
-        price_approx,
-        approved: isApproved,
-        reject_reason: isApproved ? undefined : evalResult.reason,
+    try {
+      const res = await fetch(searchUrl, {
+        headers: getRandomHeaders(),
       });
-    }
 
-    console.log(`[SCRAPER] Extracted ${results.length} candidate items from query "${query}"`);
-    return results;
-  } catch (err: any) {
-    console.error(`[SCRAPER] Search error on query "${query}":`, err?.message || err);
-    return [];
+      if (res.status === 503 || res.status === 429) {
+        console.warn(`[SCRAPER] Amazon rate limited/challenged (${res.status}) on query "${query}" page ${page}`);
+        break;
+      }
+
+      if (!res.ok) {
+        console.warn(`[SCRAPER] Amazon search returned status ${res.status} for query "${query}" page ${page}`);
+        break;
+      }
+
+      const html = await res.text();
+      const $ = cheerio.load(html);
+      const items = $('[data-asin]').toArray();
+
+      if (items.length === 0) {
+        console.log(`[SCRAPER] No more items found on page ${page}.`);
+        break;
+      }
+
+      let itemsOnThisPage = 0;
+      for (const el of items) {
+        if (results.length >= maxItems) break;
+
+        const asin = $(el).attr('data-asin')?.trim();
+        if (!asin || asin.length !== 10) continue;
+        if (results.some((r) => r.asin === asin)) continue;
+
+        // Extract title
+        const title =
+          $(el).find('h2 span').text().trim() ||
+          $(el).find('.a-text-normal').text().trim() ||
+          $(el).find('h2 a').text().trim();
+
+        if (!title || title.length < 5) continue;
+
+        // Extract image
+        const image_url = $(el).find('img.s-image').attr('src');
+        if (!image_url || !image_url.startsWith('http')) continue;
+
+        // Extract price
+        const priceText = $(el).find('.a-price .a-offscreen').first().text().trim();
+        let price_approx: number | null = null;
+        if (priceText) {
+          const num = parseFloat(priceText.replace(/[^0-9.]/g, ''));
+          if (!isNaN(num) && num > 0) {
+            price_approx = num;
+          }
+        }
+
+        // Extract artisan / brand
+        let artisan_name = $(el)
+          .find('.a-row.a-size-base.a-color-secondary span, .s-line-clamp-1, h5 span')
+          .first()
+          .text()
+          .trim();
+
+        if (!artisan_name || artisan_name.toLowerCase().includes('prime') || artisan_name.length < 2) {
+          artisan_name = 'Independent Artisan';
+        }
+
+        // Quality & Picture Evaluation via Multimodal Vision
+        const enhancedImageUrl = enhanceImageUrl(image_url);
+        const evalResult = await evaluateProductPictureAndCraft(
+          enhancedImageUrl,
+          title,
+          undefined,
+          targetCategory
+        );
+
+        const isApproved = evalResult.has_valid_picture && evalResult.is_handmade;
+        const finalCategory = (evalResult.category && evalResult.category !== 'Rejected') ? evalResult.category : (targetCategory || 'Home & Living');
+
+        results.push({
+          asin,
+          title,
+          artisan_name,
+          category: finalCategory,
+          description: `Authentic handcrafted ${finalCategory.toLowerCase()} piece made by independent artisans. Verified for genuine craftsmanship and fulfilled securely by Amazon.`,
+          image_url: evalResult.enhanced_image_url || enhancedImageUrl,
+          price_approx,
+          approved: isApproved,
+          reject_reason: isApproved ? undefined : evalResult.reason,
+        });
+
+        itemsOnThisPage++;
+        await sleep(100);
+      }
+
+      console.log(`[SCRAPER] Parsed ${itemsOnThisPage} items from page ${page}. Total collected: ${results.length}/${maxItems}`);
+      page++;
+      await sleep(600);
+    } catch (err: any) {
+      console.error(`[SCRAPER] Search error on query "${query}":`, err?.message || err);
+      break;
+    }
   }
+
+  return results;
 }
 
 /**
@@ -336,33 +352,46 @@ export async function scrapeAndUploadCatalog(options: {
   if (!customQuery && (!customAsins || customAsins.length === 0)) {
     for (const cat of categories) {
       const queries = CATEGORY_SEARCH_QUERIES[cat] || [`handmade ${cat}`];
-      const query = queries[Math.floor(Math.random() * queries.length)];
+      let approvedForCategory = 0;
+      const targetPerQuery = Math.max(10, Math.ceil(maxPerCategory / queries.length));
 
-      await sleep(1000); // Friendly polite backoff
-      const candidates = await scrapeSearchQuery(query, cat, maxPerCategory);
+      console.log(`\n>>> [CATEGORY] Commencing ingest for: ${cat} (Target: ${maxPerCategory} items) <<<`);
 
-      for (const cand of candidates) {
-        totalScraped++;
-        if (cand.approved) {
-          approvedCount++;
-          upsertItem({
-            asin: cand.asin,
-            title: cand.title,
-            artisan_name: cand.artisan_name,
-            category: cand.category,
-            description: cand.description,
-            image_url: cand.image_url,
-            price_approx: cand.price_approx,
-            affiliate_url: formatAffiliateUrl(cand.asin),
-            is_active: 1,
-            last_checked_date: now,
-          });
-          console.log(`[APPROVED & UPLOADED] [${cat}] ${cand.asin}: ${cand.title}`);
-        } else {
-          rejectedCount++;
-          console.log(`[REJECTED FILTER] [${cat}] ${cand.asin}: ${cand.title}`);
+      for (const query of queries) {
+        if (approvedForCategory >= maxPerCategory) break;
+
+        const needed = maxPerCategory - approvedForCategory;
+        const queryLimit = Math.min(needed, targetPerQuery);
+
+        await sleep(800); // Polite backoff
+        const candidates = await scrapeSearchQuery(query, cat, queryLimit);
+
+        for (const cand of candidates) {
+          if (approvedForCategory >= maxPerCategory) break;
+          totalScraped++;
+
+          if (cand.approved) {
+            approvedCount++;
+            approvedForCategory++;
+            upsertItem({
+              asin: cand.asin,
+              title: cand.title,
+              artisan_name: cand.artisan_name,
+              category: cand.category,
+              description: cand.description,
+              image_url: cand.image_url,
+              price_approx: cand.price_approx,
+              affiliate_url: formatAffiliateUrl(cand.asin),
+              is_active: 1,
+              last_checked_date: now,
+            });
+            console.log(`[APPROVED & UPLOADED] [${cat}] (${approvedForCategory}/${maxPerCategory}) ${cand.asin}: ${cand.title.slice(0, 60)}...`);
+          } else {
+            rejectedCount++;
+            console.log(`[REJECTED FILTER] [${cat}] ${cand.asin}: ${cand.title.slice(0, 60)}... (${cand.reject_reason})`);
+          }
+          processedItems.push(cand);
         }
-        processedItems.push(cand);
       }
     }
   }

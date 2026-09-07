@@ -86,9 +86,10 @@ export async function validatePicture(url: string): Promise<{
 }
 
 /**
- * Immediate rejection patterns: Tools, Machines, Equipment, DIY Supplies, Multi-Packs
+ * Immediate rejection patterns: Tools, Machines, Equipment, DIY Supplies, Multi-Packs, Commercial Brands
  */
 const FORBIDDEN_PATTERNS = [
+  // Machinery, tools, workshop equipment, kits
   /\btools?\b/i,
   /\bmachines?\b/i,
   /\bshapers?\b/i,
@@ -102,9 +103,6 @@ const FORBIDDEN_PATTERNS = [
   /\bpottery wheels?\b/i,
   /\bwheel machines?\b/i,
   /\b[0-9]+w\b/i, // watt (450W, 350W, etc.)
-  /\b[0-9]+\s*pack\b/i, // 2pack, 5 pack, etc.
-  /\bpack of [0-9]+\b/i,
-  /\bwholesale\b/i,
   /\bdiy\b/i,
   /\brfid\b/i,
   /\blaser engraver\b/i,
@@ -113,6 +111,34 @@ const FORBIDDEN_PATTERNS = [
   /\brotary\b/i,
   /\bburnisher\b/i,
   /\btrimming\b/i,
+  /\bhardware\b/i,
+  /\bhook rail\b/i,
+  /\bstainless steel\b/i,
+  /\bcommercial\b/i,
+  /\bindustrial\b/i,
+  /\bheavy duty metal\b/i,
+  /\bcloset organizer\b/i,
+
+  // Multi-packs, factory bulk lots & mass sets
+  /\b[0-9]+[\s-]*(pcs?|pieces?|count|ct|packs?|pk)\b/i,
+  /\b(pack|set) of [0-9]+\b/i,
+  /\b[0-9]+-piece\b/i,
+  /\bs\/[0-9]+\b/i, // S/4, S/6, etc.
+  /\b(bulk|wholesale|multipack|multi-pack)\b/i,
+  /\bset:\s*[0-9]+\s*pcs?\b/i,
+
+  // Synthetic mass-market textiles & fabrics
+  /\b(nylon|polyester|acrylic|spandex|microfiber|fleece|rayon)\b/i,
+  /\b(cheesecloth|tulle)\b/i,
+
+  // Electronics & battery gadgets
+  /\b(usb|rechargeable|bluetooth|electric|battery operated)\b/i,
+
+  // Known mass-market factory brands & dropship factories
+  /(bedsure|boll\s*&\s*branch|carhartt|unhide|vancasso|famiware|bestone|hasense|yun\s*tao|kanwone|lareina|webi|smlixe|the sak|iswee|moramora|dlim home|alashan|patdrea|bilin gaier|xuehua|isaenne|moccool|friestore|flym|petekoğlu|minupwell|emme|spencer & whitney|long create|lipper\s*international|aidea|melvvi|hrastany|joy&grace|fairwood\s*way|house\s*of\s*jack|apotheke|archipelago\s*botanicals|m&sense)/i,
+
+  // Cheap screen-printed novelty text mugs / mass gift novelty
+  /\b(best mom ever|gifts for mom|birthday gifts for mom|peopley outside|mama ceramic)\b/i,
 ];
 
 export function checkHeuristicHardFilter(title: string, description?: string): { pass: boolean; reason?: string } {
@@ -123,7 +149,7 @@ export function checkHeuristicHardFilter(title: string, description?: string): {
     if (match) {
       return {
         pass: false,
-        reason: `Flagged as tool, machine, accessory, or multi-pack: matches "${match[0]}"`,
+        reason: `Flagged as tool, machine, accessory, commercial brand, or multi-pack: matches "${match[0]}"`,
       };
     }
   }
@@ -143,12 +169,12 @@ export async function evaluateWithGeminiVision(
   const apiKey = getGeminiApiKey();
 
   if (!apiKey) {
-    // Fallback if no API key is present
+    // Fail-safe if no API key is present
     return {
-      is_handmade: true,
-      confidence: 0.6,
-      category: targetCategory || 'Home & Living',
-      reason: 'Heuristic verified (Gemini API key not configured)',
+      is_handmade: false,
+      confidence: 0,
+      category: 'Rejected',
+      reason: 'Gemini API key not configured; cannot verify craft authenticity',
     };
   }
 
@@ -180,7 +206,7 @@ Respond ONLY with this JSON structure:
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
 
     let res: Response | null = null;
-    for (let attempt = 0; attempt < 3; attempt++) {
+    for (let attempt = 0; attempt < 4; attempt++) {
       res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -205,9 +231,10 @@ Respond ONLY with this JSON structure:
         }),
       });
 
-      if (res.status === 429 && attempt < 2) {
-        console.log(`[VISION] 429 rate limit, waiting ${2000 * (attempt + 1)}ms before retry...`);
-        await new Promise((r) => setTimeout(r, 2000 * (attempt + 1)));
+      if (res.status === 429 && attempt < 3) {
+        const delay = 4000 * (attempt + 1);
+        console.log(`[VISION] 429 rate limit, waiting ${delay}ms before retry...`);
+        await new Promise((r) => setTimeout(r, delay));
         continue;
       }
       break;
@@ -216,10 +243,10 @@ Respond ONLY with this JSON structure:
     if (!res || !res.ok) {
       console.warn(`[VISION] Gemini API responded with status ${res?.status}`);
       return {
-        is_handmade: true,
-        confidence: 0.5,
-        category: targetCategory || 'Home & Living',
-        reason: 'Gemini API throttled or unavailable; passed heuristic check',
+        is_handmade: false,
+        confidence: 0,
+        category: 'Rejected',
+        reason: `Gemini API throttled or unavailable (HTTP ${res?.status}); failed-safe rejection`,
       };
     }
 
@@ -239,10 +266,10 @@ Respond ONLY with this JSON structure:
   } catch (err: any) {
     console.error('[VISION] Gemini evaluation error:', err?.message || err);
     return {
-      is_handmade: true,
-      confidence: 0.5,
-      category: targetCategory || 'Home & Living',
-      reason: 'Vision evaluation exception fallback',
+      is_handmade: false,
+      confidence: 0,
+      category: 'Rejected',
+      reason: `Vision evaluation exception fallback: ${err?.message || err}`,
     };
   }
 }
