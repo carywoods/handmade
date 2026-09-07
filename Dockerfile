@@ -4,6 +4,7 @@ WORKDIR /app
 
 # Dependencies stage
 FROM base AS deps
+RUN apk add --no-cache python3 make g++
 COPY package.json package-lock.json ./
 RUN npm ci
 
@@ -20,9 +21,12 @@ ENV NODE_ENV=production
 ENV HOST=0.0.0.0
 ENV PORT=3000
 
-# Install tsx globally or keep dev dependencies needed for tsx workers if invoked in container
-COPY package.json package-lock.json ./
-RUN npm ci --omit=dev && npm install -g tsx
+# Install runtime shared libraries and set PATH
+RUN apk add --no-cache libstdc++
+ENV PATH="/app/node_modules/.bin:$PATH"
+
+# Copy pre-compiled node_modules from deps stage
+COPY --from=deps /app/node_modules ./node_modules
 
 # Copy built server assets, data, and scripts
 COPY --from=build /app/dist ./dist
