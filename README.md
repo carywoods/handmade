@@ -90,7 +90,7 @@ cp .env.example .env
 ```
 Default local settings:
 ```env
-AMAZON_TAG=itsmadebyhand-20
+AMAZON_TAG=itsmadebyha0a-20
 ADMIN_PASSWORD=artisan-secret-2026
 PORT=4321
 HOST=127.0.0.1
