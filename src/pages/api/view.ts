@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 import { recordPageView } from '../../lib/db';
+import { resolveGeoLocation } from '../../lib/geo';
 
 export const POST: APIRoute = async ({ request, cookies }) => {
   try {
@@ -8,6 +9,11 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     const referrer = data.referrer ? data.referrer.toString() : null;
     const userAgent = request.headers.get('user-agent') || null;
     const screenWidth = typeof data.screenWidth === 'number' ? data.screenWidth : null;
+    const timeZone = data.timeZone?.toString() || null;
+    const language = data.language?.toString() || request.headers.get('accept-language') || null;
+    const utmSource = data.utmSource?.toString() || null;
+    const utmMedium = data.utmMedium?.toString() || null;
+    const utmCampaign = data.utmCampaign?.toString() || null;
 
     // Retrieve or establish anonymous visitor ID
     let visitorId = data.visitorId?.toString() || cookies.get('imh_vid')?.value;
@@ -21,15 +27,27 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       });
     }
 
+    // Resolve geographic origin from headers, client timezone, or browser language
+    const geo = resolveGeoLocation({
+      headers: request.headers,
+      timeZone,
+      language,
+    });
+
     recordPageView({
       path,
       referrer,
       userAgent,
       visitorId,
       screenWidth,
+      countryCode: geo.countryCode,
+      countryName: geo.countryName,
+      utmSource,
+      utmMedium,
+      utmCampaign,
     });
 
-    return new Response(JSON.stringify({ success: true, visitorId }), {
+    return new Response(JSON.stringify({ success: true, visitorId, country: geo.countryCode }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
     });

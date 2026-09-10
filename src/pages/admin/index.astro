@@ -209,28 +209,168 @@ if (umamiId) activeExternalAnalytics.push(`Umami (${umamiId.slice(0, 8)}...)`);
         </div>
       </div>
 
-      <!-- 3-Column Grid: Acquisition Channels, Top Pages, and Devices -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
-        
-        <!-- Acquisition Channels (Referrers) -->
-        <div class="p-4 rounded-xl bg-warm-50/70 border border-warm-200 space-y-3">
-          <div class="flex items-center justify-between">
-            <h4 class="text-xs font-bold uppercase tracking-wider text-warm-900">Acquisition Channels</h4>
-            <span class="text-[10px] text-warm-800/60">Top Referrers</span>
-          </div>
-          <ul class="space-y-2 text-xs">
-            {stats.topReferrers.map((ref) => (
-              <li class="flex items-center justify-between">
-                <span class="text-warm-800 truncate max-w-[150px]" title={ref.source}>{ref.source}</span>
-                <div class="flex items-center gap-2">
-                  <span class="font-semibold text-warm-900">{ref.count}</span>
-                  <span class="text-[10px] text-warm-800/60 w-8 text-right">({ref.percent}%)</span>
-                </div>
-              </li>
-            ))}
-          </ul>
+      <!-- Traffic Origins & Audience Intelligence (Where Traffic is Coming From) -->
+      <div class="space-y-3 pt-2">
+        <div class="flex items-center justify-between">
+          <h3 class="text-xs font-bold uppercase tracking-wider text-warm-900 flex items-center gap-2">
+            <span>Where Traffic Is Coming From</span>
+            <span class="text-[10px] font-normal text-warm-800/60 lowercase">(geographic & referral origin)</span>
+          </h3>
+          <span class="text-[11px] text-warm-800/60">Global telemetry</span>
         </div>
 
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          
+          <!-- 1. Geographic Origin (Countries & World Regions) -->
+          <div class="p-4 rounded-xl bg-warm-50/70 border border-warm-200 space-y-3 flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between pb-2 border-b border-warm-200/60">
+                <h4 class="text-xs font-bold uppercase tracking-wider text-warm-900 flex items-center gap-1.5">
+                  <span>🌍 Geographic Origin</span>
+                </h4>
+                <span class="text-[10px] text-warm-800/60">Visitors / Share</span>
+              </div>
+              <div class="space-y-2.5 pt-2.5">
+                {stats.geoBreakdown.length === 0 ? (
+                  <p class="text-xs text-warm-800/60 py-4 text-center">No location telemetry recorded yet.</p>
+                ) : (
+                  stats.geoBreakdown.map((geo) => (
+                    <div>
+                      <div class="flex items-center justify-between text-xs mb-1">
+                        <span class="text-warm-800 font-medium flex items-center gap-1.5 truncate max-w-[170px]" title={geo.countryName}>
+                          <span class="text-base leading-none">{geo.flag}</span>
+                          <span class="truncate">{geo.countryName}</span>
+                        </span>
+                        <span class="text-warm-900 font-bold text-[11px]">
+                          {geo.visitors} <span class="text-warm-800/50 font-normal">vis</span> ({geo.percent}%)
+                        </span>
+                      </div>
+                      <div class="w-full bg-warm-200 rounded-full h-1.5">
+                        <div class="bg-clay-600 h-1.5 rounded-full" style={`width: ${geo.percent}%`}></div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+            <div class="pt-2 border-t border-warm-200/60 text-[10px] text-warm-800/60 flex items-center justify-between">
+              <span>Primary Market: <strong class="text-warm-900">{stats.geoBreakdown[0]?.countryName || 'Global'}</strong></span>
+              <span>{stats.geoBreakdown.length} Countries</span>
+            </div>
+          </div>
+
+          <!-- 2. Inbound Referring Domains & External Websites -->
+          <div class="p-4 rounded-xl bg-warm-50/70 border border-warm-200 space-y-3 flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between pb-2 border-b border-warm-200/60">
+                <h4 class="text-xs font-bold uppercase tracking-wider text-warm-900 flex items-center gap-1.5">
+                  <span>🔗 Inbound Referring Domains</span>
+                </h4>
+                <span class="text-[10px] text-warm-800/60">Hits / Share</span>
+              </div>
+              <ul class="space-y-2 pt-2.5 text-xs">
+                {stats.topReferringDomains.length === 0 ? (
+                  <li class="text-warm-800/60 py-4 text-center">No external referrers recorded yet.</li>
+                ) : (
+                  stats.topReferringDomains.map((ref) => (
+                    <li class="flex items-center justify-between">
+                      <span class="text-warm-800 font-mono text-[11px] truncate max-w-[170px]" title={ref.domain}>
+                        {ref.domain}
+                      </span>
+                      <div class="flex items-center gap-2">
+                        <span class="font-semibold text-warm-900">{ref.count}</span>
+                        <span class="text-[10px] text-warm-800/60 w-8 text-right">({ref.percent}%)</span>
+                      </div>
+                    </li>
+                  ))
+                )}
+              </ul>
+            </div>
+            <div class="pt-2 border-t border-warm-200/60 text-[10px] text-warm-800/60">
+              Top Referring Channel: <strong class="text-warm-900">{stats.topReferrers[0]?.source || 'Direct'}</strong>
+            </div>
+          </div>
+
+          <!-- 3. Acquisition Channels & Conversions by Origin -->
+          <div class="p-4 rounded-xl bg-warm-50/70 border border-warm-200 space-y-3 flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between pb-2 border-b border-warm-200/60">
+                <h4 class="text-xs font-bold uppercase tracking-wider text-warm-900 flex items-center gap-1.5">
+                  <span>🧭 Acquisition Channels</span>
+                </h4>
+                <span class="text-[10px] text-warm-800/60">Channel Share</span>
+              </div>
+              <ul class="space-y-2 pt-2.5 text-xs">
+                {stats.topReferrers.map((ch) => (
+                  <li class="flex items-center justify-between">
+                    <span class="text-warm-800 truncate max-w-[160px]" title={ch.source}>{ch.source}</span>
+                    <div class="flex items-center gap-2">
+                      <span class="font-semibold text-warm-900">{ch.count}</span>
+                      <span class="text-[10px] text-warm-800/60 w-8 text-right">({ch.percent}%)</span>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {stats.clicksByOrigin.length > 0 && (
+              <div class="pt-2.5 border-t border-warm-200/60">
+                <div class="text-[10px] font-bold uppercase tracking-wider text-warm-800 mb-1.5">
+                  Affiliate Clicks by Country
+                </div>
+                <div class="flex flex-wrap gap-1.5">
+                  {stats.clicksByOrigin.map((c) => (
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white border border-warm-200 text-[10px] text-warm-900">
+                      <span>{c.flag}</span>
+                      <span>{c.countryName}:</span>
+                      <strong>{c.clicks}</strong>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+        </div>
+      </div>
+
+      <!-- UTM Marketing Campaign Attribution (if present) -->
+      {stats.topCampaigns.length > 0 && (
+        <div class="p-4 rounded-xl bg-warm-50/60 border border-warm-200 space-y-2">
+          <div class="flex items-center justify-between">
+            <h4 class="text-xs font-bold uppercase tracking-wider text-warm-900 flex items-center gap-1.5">
+              <span>🎯 Inbound Marketing Campaigns (UTM Attribution)</span>
+            </h4>
+            <span class="text-[10px] text-warm-800/60">Source • Medium • Campaign</span>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+              <thead class="text-[10px] uppercase text-warm-800/70 bg-warm-100/60">
+                <tr>
+                  <th class="py-1.5 px-3">UTM Source</th>
+                  <th class="py-1.5 px-3">Medium</th>
+                  <th class="py-1.5 px-3">Campaign</th>
+                  <th class="py-1.5 px-3 text-right">Views</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-warm-100">
+                {stats.topCampaigns.map((camp) => (
+                  <tr>
+                    <td class="py-2 px-3 font-semibold text-warm-900">{camp.source}</td>
+                    <td class="py-2 px-3 text-warm-800/70">{camp.medium}</td>
+                    <td class="py-2 px-3 text-warm-800/70">{camp.campaign}</td>
+                    <td class="py-2 px-3 text-right font-mono font-bold text-warm-900">{camp.count}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      <!-- Storefront Pages & Device Distribution Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+        
         <!-- Top Visited Pages -->
         <div class="p-4 rounded-xl bg-warm-50/70 border border-warm-200 space-y-3">
           <div class="flex items-center justify-between">
@@ -240,7 +380,7 @@ if (umamiId) activeExternalAnalytics.push(`Umami (${umamiId.slice(0, 8)}...)`);
           <ul class="space-y-2 text-xs">
             {stats.topPaths.map((pathItem) => (
               <li class="flex items-center justify-between">
-                <a href={pathItem.path} target="_blank" class="text-warm-900 hover:text-clay-600 font-mono text-[11px] truncate max-w-[160px]" title={pathItem.path}>
+                <a href={pathItem.path} target="_blank" class="text-warm-900 hover:text-clay-600 font-mono text-[11px] truncate max-w-[200px]" title={pathItem.path}>
                   {pathItem.path}
                 </a>
                 <span class="font-medium text-warm-800 text-[11px]">

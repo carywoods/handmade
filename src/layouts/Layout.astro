@@ -117,6 +117,29 @@ const umamiHost = (typeof import.meta !== 'undefined' && import.meta.env?.PUBLIC
             document.cookie = `imh_vid=${vid}; path=/; max-age=31536000; SameSite=Lax`;
           }
 
+          // Capture UTM campaign attribution parameters if present in URL
+          const urlParams = new URLSearchParams(window.location.search);
+          let utmSource = urlParams.get('utm_source') || urlParams.get('source') || urlParams.get('ref');
+          let utmMedium = urlParams.get('utm_medium');
+          let utmCampaign = urlParams.get('utm_campaign');
+
+          if (utmSource) {
+            try {
+              sessionStorage.setItem('imh_utm_source', utmSource);
+              if (utmMedium) sessionStorage.setItem('imh_utm_medium', utmMedium);
+              if (utmCampaign) sessionStorage.setItem('imh_utm_campaign', utmCampaign);
+            } catch (e) {}
+          } else {
+            try {
+              utmSource = sessionStorage.getItem('imh_utm_source');
+              utmMedium = sessionStorage.getItem('imh_utm_medium');
+              utmCampaign = sessionStorage.getItem('imh_utm_campaign');
+            } catch (e) {}
+          }
+
+          const timeZone = typeof Intl !== 'undefined' && Intl.DateTimeFormat ? Intl.DateTimeFormat().resolvedOptions().timeZone : null;
+          const language = navigator.language || null;
+
           // Fire telemetry payload
           fetch('/api/view', {
             method: 'POST',
@@ -126,6 +149,11 @@ const umamiHost = (typeof import.meta !== 'undefined' && import.meta.env?.PUBLIC
               referrer: document.referrer || null,
               visitorId: vid,
               screenWidth: window.innerWidth || null,
+              timeZone,
+              language,
+              utmSource,
+              utmMedium,
+              utmCampaign,
             }),
           }).catch(() => {});
         }
