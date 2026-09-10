@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import { getDb, upsertItem, logSystemEvent } from '../src/lib/db.js';
 import { formatAffiliateUrl } from '../src/lib/affiliate.js';
+import { isValidAsin } from '../src/lib/asin.js';
 
 /**
  * Filter to weed out mass-produced goods, dropshippers, and factory resellers.
@@ -57,6 +58,15 @@ export function evaluateArtisanAuthenticity(product: RawProductInput): {
   reason: string;
   inferredCategory: string;
 } {
+  // Validate ASIN format first
+  if (!isValidAsin(product.asin)) {
+    return {
+      approved: false,
+      reason: `Invalid ASIN format: "${product.asin}". Must be a 10-character alphanumeric string.`,
+      inferredCategory: 'Unassigned',
+    };
+  }
+
   const content = `${product.title} ${product.description || ''} ${product.artisan_name || ''}`.toLowerCase();
 
   // Check against blacklisted mass-produced terms

@@ -2,11 +2,11 @@
 import Layout from '../../layouts/Layout.astro';
 import ProductCard from '../../components/ProductCard.astro';
 import { getItemByAsin, getRelatedItems } from '../../lib/db';
-import { formatTrackedClickUrl, COMPLIANCE } from '../../lib/affiliate';
+import { formatTrackedClickUrl, COMPLIANCE, isValidAsin } from '../../lib/affiliate';
 
 const { asin } = Astro.params;
 
-if (!asin) {
+if (!asin || !isValidAsin(asin)) {
   return Astro.redirect('/', 302);
 }
 

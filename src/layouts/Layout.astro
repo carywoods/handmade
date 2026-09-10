@@ -21,6 +21,16 @@ const {
 } = Astro.props;
 
 const canonicalUrl = new URL(Astro.url.pathname, Astro.site || 'https://itsmadebyhand.com').href;
+
+// Optional Third-Party Analytics (Disabled by default; activated only if explicitly set in environment)
+// @ts-ignore
+const gaId = (typeof import.meta !== 'undefined' && import.meta.env?.PUBLIC_GA_ID) || process.env.PUBLIC_GA_ID || null;
+// @ts-ignore
+const plausibleDomain = (typeof import.meta !== 'undefined' && import.meta.env?.PUBLIC_PLAUSIBLE_DOMAIN) || process.env.PUBLIC_PLAUSIBLE_DOMAIN || null;
+// @ts-ignore
+const umamiWebsiteId = (typeof import.meta !== 'undefined' && import.meta.env?.PUBLIC_UMAMI_WEBSITE_ID) || process.env.PUBLIC_UMAMI_WEBSITE_ID || null;
+// @ts-ignore
+const umamiHost = (typeof import.meta !== 'undefined' && import.meta.env?.PUBLIC_UMAMI_HOST) || process.env.PUBLIC_UMAMI_HOST || 'https://cloud.umami.is';
 ---
 
 <!doctype html>
@@ -55,6 +65,29 @@ const canonicalUrl = new URL(Astro.url.pathname, Astro.site || 'https://itsmadeb
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content={description} />
     <meta name="twitter:image" content={image} />
+
+    <!-- Optional 3rd-Party Analytics: Google Analytics 4 (Only injected if PUBLIC_GA_ID is set) -->
+    {gaId && (
+      <>
+        <script is:inline async src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`}></script>
+        <script is:inline define:vars={{ gaId }}>
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', gaId);
+        </script>
+      </>
+    )}
+
+    <!-- Optional 3rd-Party Analytics: Plausible (Only injected if PUBLIC_PLAUSIBLE_DOMAIN is set) -->
+    {plausibleDomain && (
+      <script is:inline defer data-domain={plausibleDomain} src="https://plausible.io/js/script.js"></script>
+    )}
+
+    <!-- Optional 3rd-Party Analytics: Umami (Only injected if PUBLIC_UMAMI_WEBSITE_ID is set) -->
+    {umamiWebsiteId && (
+      <script is:inline defer src={`${umamiHost.replace(/\/$/, '')}/script.js`} data-website-id={umamiWebsiteId}></script>
+    )}
   </head>
   <body class="min-h-screen flex flex-col antialiased selection:bg-clay-500 selection:text-white">
     <Header currentCategory={currentCategory} />
@@ -66,16 +99,33 @@ const canonicalUrl = new URL(Astro.url.pathname, Astro.site || 'https://itsmadeb
     <WishlistDrawer />
     <Footer />
 
-    <!-- Lightweight Internal Page View Tracker -->
+    <!-- Pure 100% First-Party, Self-Hosted Traffic Measurement Engine (Zero 3rd-Party Vendors) -->
     <script>
       try {
         if (!window.location.pathname.startsWith('/admin')) {
+          // Retrieve or establish anonymous persistent visitor ID
+          let vid = localStorage.getItem('imh_vid');
+          if (!vid) {
+            vid = typeof crypto !== 'undefined' && crypto.randomUUID
+              ? crypto.randomUUID()
+              : 'v_' + Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
+            localStorage.setItem('imh_vid', vid);
+          }
+
+          // Sync cookie so outbound click redirects associate with this visitor
+          if (!document.cookie.includes('imh_vid=')) {
+            document.cookie = `imh_vid=${vid}; path=/; max-age=31536000; SameSite=Lax`;
+          }
+
+          // Fire telemetry payload
           fetch('/api/view', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               path: window.location.pathname,
               referrer: document.referrer || null,
+              visitorId: vid,
+              screenWidth: window.innerWidth || null,
             }),
           }).catch(() => {});
         }

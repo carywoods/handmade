@@ -1,7 +1,7 @@
 import * as cheerio from 'cheerio';
 import { upsertItem, logSystemEvent } from './db.js';
 import { formatAffiliateUrl } from './affiliate.js';
-import { evaluateArtisanAuthenticity } from '../../scripts/ingest.js';
+import { isValidAsin, normalizeAsin } from './asin.js';
 import { evaluateProductPictureAndCraft, enhanceImageUrl } from './vision-evaluator.js';
 
 export interface ScrapedProduct {
@@ -124,8 +124,8 @@ export async function scrapeSearchQuery(
       for (const el of items) {
         if (results.length >= maxItems) break;
 
-        const asin = $(el).attr('data-asin')?.trim();
-        if (!asin || asin.length !== 10) continue;
+        const asin = normalizeAsin($(el).attr('data-asin'));
+        if (!asin) continue;
         if (results.some((r) => r.asin === asin)) continue;
 
         // Extract title
@@ -272,7 +272,12 @@ export async function scrapeAndUploadCatalog(options: {
 
   // If specific ASINs are supplied
   if (customAsins && customAsins.length > 0) {
-    for (const asin of customAsins) {
+    for (const rawAsin of customAsins) {
+      const asin = normalizeAsin(rawAsin);
+      if (!asin) {
+        console.warn(`[SCRAPER] Skipping invalid ASIN format: "${rawAsin}"`);
+        continue;
+      }
       await sleep(500);
       const details = await scrapeProductDetails(asin);
       if (details && details.title && details.image_url) {

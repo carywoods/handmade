@@ -8,20 +8,32 @@ export function getAmazonTag(): string {
   return (typeof import.meta !== 'undefined' && import.meta.env?.AMAZON_TAG) || process.env.AMAZON_TAG || 'itsmadebyha0a-20';
 }
 
+import { isValidAsin, normalizeAsin, extractAsin } from './asin.js';
+export { isValidAsin, normalizeAsin, extractAsin } from './asin.js';
+
 /**
- * Returns formatted Amazon direct product link with tracking tag
+ * Returns formatted Amazon direct product link with tracking tag.
+ * Validates ASIN format before formatting.
  */
 export function formatAffiliateUrl(asin: string): string {
-  const cleanAsin = asin.trim().toUpperCase();
+  const cleanAsin = normalizeAsin(asin);
+  if (!cleanAsin) {
+    throw new Error(`Invalid Amazon ASIN: "${asin}". Must be a 10-character alphanumeric string.`);
+  }
   const tag = getAmazonTag();
   return `https://www.amazon.com/dp/${cleanAsin}?tag=${encodeURIComponent(tag)}`;
 }
 
 /**
- * Generates local click tracking redirect URL
+ * Generates local click tracking redirect URL.
+ * Validates ASIN format before formatting.
  */
 export function formatTrackedClickUrl(asin: string): string {
-  return `/api/click?asin=${encodeURIComponent(asin)}`;
+  const cleanAsin = normalizeAsin(asin);
+  if (!cleanAsin) {
+    return '#';
+  }
+  return `/api/click?asin=${encodeURIComponent(cleanAsin)}`;
 }
 
 /**

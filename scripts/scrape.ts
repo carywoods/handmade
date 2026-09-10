@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import { scrapeAndUploadCatalog, CATEGORY_SEARCH_QUERIES } from '../src/lib/scraper.js';
+import { parseAsinList } from '../src/lib/asin.js';
 
 async function main() {
   const args = process.argv.slice(2);
@@ -16,7 +17,11 @@ async function main() {
       customCategory = args[i + 1];
       i++;
     } else if (args[i] === '--asin' && args[i + 1]) {
-      customAsins = args[i + 1].split(',').map((s) => s.trim().toUpperCase());
+      const { valid, invalid } = parseAsinList(args[i + 1]);
+      customAsins = valid;
+      if (invalid.length > 0) {
+        console.warn(`[SCRAPER] Warning: Ignored ${invalid.length} invalid ASIN entries: ${invalid.join(', ')}`);
+      }
       i++;
     } else if (args[i] === '--limit' && args[i + 1]) {
       maxPerCategory = parseInt(args[i + 1], 10) || 4;

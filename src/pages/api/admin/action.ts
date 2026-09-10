@@ -34,14 +34,65 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
       if (query) {
         await scrapeAndUploadCatalog({ customQuery: query, maxPerCategory: limit });
       }
+    } else if (action === 'validate-asin') {
+      const input = formData.get('asin')?.toString() || '';
+      const { verifyAsinLive, extractAsin } = await import('../../../lib/asin');
+      const { getItemByAsin } = await import('../../../lib/db');
+
+      const extractedAsin = extractAsin(input);
+      if (!extractedAsin) {
+        return new Response(
+          JSON.stringify({
+            valid: false,
+            exists: false,
+            asin: input,
+            reason: 'Invalid ASIN format. Must be a 10-character alphanumeric string or valid Amazon product URL.',
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const existing = getItemByAsin(extractedAsin);
+      const liveCheck = await verifyAsinLive(extractedAsin);
+
+      return new Response(
+        JSON.stringify({
+          valid: liveCheck.valid,
+          exists: liveCheck.exists,
+          asin: extractedAsin,
+          inDatabase: Boolean(existing),
+          dbItem: existing
+            ? {
+                title: existing.title,
+                category: existing.category,
+                is_active: Boolean(existing.is_active),
+                artisan_name: existing.artisan_name,
+              }
+            : null,
+          title: liveCheck.title || existing?.title,
+          reason: liveCheck.reason,
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } }
+      );
     } else if (action === 'scrape-asins') {
       const asinsRaw = formData.get('asins')?.toString() || '';
-      const asins = asinsRaw
-        .split(',')
-        .map((s) => s.trim().toUpperCase())
-        .filter((s) => s.length === 10);
-      if (asins.length > 0) {
-        await scrapeAndUploadCatalog({ customAsins: asins });
+      const { parseAsinList } = await import('../../../lib/asin');
+      const { valid, invalid } = parseAsinList(asinsRaw);
+
+      if (valid.length === 0) {
+        throw new Error(
+          `No valid 10-character ASINs found in input "${asinsRaw.slice(0, 40)}...". Please provide valid ASINs or Amazon product URLs.`
+        );
+      }
+
+      await scrapeAndUploadCatalog({ customAsins: valid });
+
+      if (invalid.length > 0) {
+        logSystemEvent(
+          'admin_asins_warning',
+          'warning',
+          `Ingested ${valid.length} valid ASINs. Ignored ${invalid.length} invalid entries: ${invalid.join(', ')}`
+        );
       }
     } else if (action === 'run-audit') {
       const prune = formData.get('prune')?.toString() === 'true';

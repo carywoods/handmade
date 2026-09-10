@@ -12,6 +12,18 @@ const { items: allItems } = getItems({ activeOnly: false, limit: 100 });
 
 const actionStatus = Astro.url.searchParams.get('status');
 const actionMsg = Astro.url.searchParams.get('msg');
+
+// Detect optional external analytics
+const activeExternalAnalytics: string[] = [];
+// @ts-ignore
+const gaId = (typeof import.meta !== 'undefined' && import.meta.env?.PUBLIC_GA_ID) || process.env.PUBLIC_GA_ID;
+if (gaId) activeExternalAnalytics.push(`GA4 (${gaId})`);
+// @ts-ignore
+const plausibleDomain = (typeof import.meta !== 'undefined' && import.meta.env?.PUBLIC_PLAUSIBLE_DOMAIN) || process.env.PUBLIC_PLAUSIBLE_DOMAIN;
+if (plausibleDomain) activeExternalAnalytics.push(`Plausible (${plausibleDomain})`);
+// @ts-ignore
+const umamiId = (typeof import.meta !== 'undefined' && import.meta.env?.PUBLIC_UMAMI_WEBSITE_ID) || process.env.PUBLIC_UMAMI_WEBSITE_ID;
+if (umamiId) activeExternalAnalytics.push(`Umami (${umamiId.slice(0, 8)}...)`);
 ---
 
 <Layout title="Operator Dashboard | its made by hand">
@@ -66,73 +78,204 @@ const actionMsg = Astro.url.searchParams.get('msg');
       </div>
     )}
 
-    <!-- KPI Metric Cards -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+    <!-- KPI Metric Cards (5 Cards) -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
       
       <!-- Total Page Views -->
-      <div class="p-6 rounded-2xl bg-white border border-warm-200 shadow-xs space-y-1">
-        <span class="text-xs uppercase font-bold tracking-wider text-warm-800/70">Total Page Views</span>
+      <div class="p-5 rounded-2xl bg-white border border-warm-200 shadow-xs space-y-1">
+        <span class="text-[11px] uppercase font-bold tracking-wider text-warm-800/70">Page Views</span>
         <div class="flex items-baseline justify-between">
           <span class="text-3xl font-serif font-bold text-warm-900">{stats.totalViews}</span>
-          <span class="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
+          <span class="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
             +{stats.viewsToday} 24h
           </span>
         </div>
-        <p class="text-[11px] text-warm-800/60 pt-2">Tracked client-side page impressions</p>
+        <p class="text-[10px] text-warm-800/60 pt-1">Filtered against search bots</p>
+      </div>
+
+      <!-- Unique Visitors -->
+      <div class="p-5 rounded-2xl bg-white border border-warm-200 shadow-xs space-y-1">
+        <span class="text-[11px] uppercase font-bold tracking-wider text-warm-800/70">Unique Visitors</span>
+        <div class="flex items-baseline justify-between">
+          <span class="text-3xl font-serif font-bold text-warm-900">{stats.uniqueVisitors}</span>
+          <span class="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
+            +{stats.uniqueVisitorsToday} 24h
+          </span>
+        </div>
+        <p class="text-[10px] text-warm-800/60 pt-1">Anonymous device fingerprints</p>
       </div>
 
       <!-- Outbound Clicks -->
-      <div class="p-6 rounded-2xl bg-white border border-warm-200 shadow-xs space-y-1">
-        <span class="text-xs uppercase font-bold tracking-wider text-warm-800/70">Affiliate Clicks</span>
+      <div class="p-5 rounded-2xl bg-white border border-warm-200 shadow-xs space-y-1">
+        <span class="text-[11px] uppercase font-bold tracking-wider text-warm-800/70">Affiliate Clicks</span>
         <div class="flex items-baseline justify-between">
           <span class="text-3xl font-serif font-bold text-clay-600">{stats.totalClicks}</span>
-          <span class="text-xs font-semibold text-clay-700 bg-clay-50 px-2 py-0.5 rounded-full">
+          <span class="text-[11px] font-semibold text-clay-700 bg-clay-50 px-2 py-0.5 rounded-full">
             +{stats.clicksToday} 24h
           </span>
         </div>
-        <p class="text-[11px] text-warm-800/60 pt-2">Outbound referral clicks to Amazon</p>
+        <p class="text-[10px] text-warm-800/60 pt-1">Amazon referral exits</p>
       </div>
 
-      <!-- Active Catalog Items -->
-      <div class="p-6 rounded-2xl bg-white border border-warm-200 shadow-xs space-y-1">
-        <span class="text-xs uppercase font-bold tracking-wider text-warm-800/70">Active Artisan Goods</span>
+      <!-- Conversion Rate (CTR) -->
+      <div class="p-5 rounded-2xl bg-white border border-warm-200 shadow-xs space-y-1">
+        <span class="text-[11px] uppercase font-bold tracking-wider text-warm-800/70">Click-Through Rate</span>
+        <div class="flex items-baseline justify-between">
+          <span class="text-3xl font-serif font-bold text-warm-900">{stats.overallCtr}%</span>
+          <span class="text-[11px] font-semibold text-warm-800 bg-warm-100 px-2 py-0.5 rounded-full">
+            {stats.todayCtr}% 24h
+          </span>
+        </div>
+        <p class="text-[10px] text-warm-800/60 pt-1">Outbound click conversion</p>
+      </div>
+
+      <!-- Catalog Health -->
+      <div class="p-5 rounded-2xl bg-white border border-warm-200 shadow-xs space-y-1">
+        <span class="text-[11px] uppercase font-bold tracking-wider text-warm-800/70">Catalog Health</span>
         <div class="flex items-baseline justify-between">
           <span class="text-3xl font-serif font-bold text-warm-900">{stats.activeItems}</span>
-          <span class="text-xs text-warm-800/70">of {stats.totalItems} total</span>
+          <span class="text-xs text-warm-800/70">of {stats.totalItems}</span>
         </div>
-        <p class="text-[11px] text-warm-800/60 pt-2">
-          {stats.inactiveItems > 0 ? `${stats.inactiveItems} flagged inactive` : 'All items reachable'}
+        <p class="text-[10px] text-warm-800/60 pt-1">
+          {stats.inactiveItems > 0 ? `${stats.inactiveItems} inactive` : '100% reachable'}
         </p>
-      </div>
-
-      <!-- Ingestion & Rot Scan Status -->
-      <div class="p-6 rounded-2xl bg-white border border-warm-200 shadow-xs space-y-2">
-        <span class="text-xs uppercase font-bold tracking-wider text-warm-800/70">Maintenance Status</span>
-        <div class="text-xs space-y-1.5">
-          <div class="flex justify-between">
-            <span class="text-warm-800/80">Link Scan:</span>
-            <span class="font-medium text-warm-900">
-              {stats.lastLinkRotCheck ? new Date(stats.lastLinkRotCheck.created_at).toLocaleDateString() : 'Pending'}
-            </span>
-          </div>
-          <div class="flex justify-between">
-            <span class="text-warm-800/80">Ingestion:</span>
-            <span class="font-medium text-warm-900">
-              {stats.lastIngestion ? new Date(stats.lastIngestion.created_at).toLocaleDateString() : 'Pending'}
-            </span>
-          </div>
-          <div class="flex justify-between">
-            <span class="text-warm-800/80">Live Scraper:</span>
-            <span class="font-medium text-clay-700 font-semibold">
-              {stats.lastScraper ? new Date(stats.lastScraper.created_at).toLocaleDateString() : 'Ready'}
-            </span>
-          </div>
-        </div>
       </div>
 
     </div>
 
-    <!-- Live Amazon Handmade Scraper Panel -->
+    <!-- Traffic Intelligence & Acquisition Analysis Section -->
+    <div class="p-6 rounded-2xl bg-white border border-warm-200 shadow-xs space-y-6">
+      <div class="border-b border-warm-100 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+        <div>
+          <h2 class="text-lg font-serif text-warm-900 flex items-center gap-2">
+            <span>Traffic & Audience Intelligence</span>
+            <span class="text-[10px] uppercase tracking-wider font-bold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full">
+              Real-Time
+            </span>
+          </h2>
+          <p class="text-xs text-warm-800/70">
+            Privacy-first server and client telemetry measuring acquisition channels, storefront velocity, and device distribution.
+          </p>
+        </div>
+        <div class="flex flex-col sm:items-end gap-1.5 text-xs text-warm-800/70">
+          <div>Lifetime Human Impressions: <strong class="text-warm-900">{stats.totalViews}</strong></div>
+          <div>
+            <span class={`inline-block text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${
+              activeExternalAnalytics.length > 0 ? 'bg-blue-100 text-blue-800' : 'bg-warm-100 text-warm-700'
+            }`}>
+              3rd-Party Analytics: {activeExternalAnalytics.length > 0 ? `Active (${activeExternalAnalytics.join(', ')})` : 'Disabled (First-Party SQLite Mode)'}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 7-Day Traffic & Conversion Velocity Table -->
+      <div class="space-y-2">
+        <div class="flex items-center justify-between">
+          <h3 class="text-xs font-bold uppercase tracking-wider text-warm-800">
+            Recent 7-Day Traffic & Conversion Velocity
+          </h3>
+          <span class="text-[11px] text-warm-800/60">Day-by-day telemetry</span>
+        </div>
+        <div class="overflow-x-auto rounded-xl border border-warm-200/80">
+          <table class="w-full text-left text-xs">
+            <thead class="bg-warm-50 text-warm-800/70 uppercase tracking-wider text-[10px]">
+              <tr>
+                <th class="py-2.5 px-4 font-semibold">Date</th>
+                <th class="py-2.5 px-4 font-semibold text-center">Page Views</th>
+                <th class="py-2.5 px-4 font-semibold text-center">Unique Visitors</th>
+                <th class="py-2.5 px-4 font-semibold text-center">Affiliate Clicks</th>
+                <th class="py-2.5 px-4 font-semibold text-right">Conversion (CTR)</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-warm-100">
+              {stats.sevenDayTrend.length === 0 ? (
+                <tr>
+                  <td colspan="5" class="py-4 text-center text-warm-800/60">No recent traffic history recorded.</td>
+                </tr>
+              ) : (
+                stats.sevenDayTrend.map((day) => (
+                  <tr class="hover:bg-warm-50/50 transition-colors">
+                    <td class="py-2.5 px-4 font-mono text-[11px] text-warm-900 font-medium">{day.date}</td>
+                    <td class="py-2.5 px-4 text-center text-warm-900 font-semibold">{day.views}</td>
+                    <td class="py-2.5 px-4 text-center text-warm-800/80">{day.visitors}</td>
+                    <td class="py-2.5 px-4 text-center text-clay-600 font-bold">{day.clicks}</td>
+                    <td class="py-2.5 px-4 text-right font-mono text-[11px] text-warm-900 font-semibold">{day.ctr}%</td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 3-Column Grid: Acquisition Channels, Top Pages, and Devices -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
+        
+        <!-- Acquisition Channels (Referrers) -->
+        <div class="p-4 rounded-xl bg-warm-50/70 border border-warm-200 space-y-3">
+          <div class="flex items-center justify-between">
+            <h4 class="text-xs font-bold uppercase tracking-wider text-warm-900">Acquisition Channels</h4>
+            <span class="text-[10px] text-warm-800/60">Top Referrers</span>
+          </div>
+          <ul class="space-y-2 text-xs">
+            {stats.topReferrers.map((ref) => (
+              <li class="flex items-center justify-between">
+                <span class="text-warm-800 truncate max-w-[150px]" title={ref.source}>{ref.source}</span>
+                <div class="flex items-center gap-2">
+                  <span class="font-semibold text-warm-900">{ref.count}</span>
+                  <span class="text-[10px] text-warm-800/60 w-8 text-right">({ref.percent}%)</span>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <!-- Top Visited Pages -->
+        <div class="p-4 rounded-xl bg-warm-50/70 border border-warm-200 space-y-3">
+          <div class="flex items-center justify-between">
+            <h4 class="text-xs font-bold uppercase tracking-wider text-warm-900">Top Visited Pages</h4>
+            <span class="text-[10px] text-warm-800/60">Views / Visitors</span>
+          </div>
+          <ul class="space-y-2 text-xs">
+            {stats.topPaths.map((pathItem) => (
+              <li class="flex items-center justify-between">
+                <a href={pathItem.path} target="_blank" class="text-warm-900 hover:text-clay-600 font-mono text-[11px] truncate max-w-[160px]" title={pathItem.path}>
+                  {pathItem.path}
+                </a>
+                <span class="font-medium text-warm-800 text-[11px]">
+                  <strong>{pathItem.views}</strong> <span class="text-warm-800/50">/</span> {pathItem.visitors}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <!-- Device Breakdown -->
+        <div class="p-4 rounded-xl bg-warm-50/70 border border-warm-200 space-y-3">
+          <div class="flex items-center justify-between">
+            <h4 class="text-xs font-bold uppercase tracking-wider text-warm-900">Device Distribution</h4>
+            <span class="text-[10px] text-warm-800/60">Traffic Share</span>
+          </div>
+          <div class="space-y-2.5 text-xs pt-1">
+            {stats.deviceBreakdown.map((dev) => (
+              <div>
+                <div class="flex justify-between text-xs mb-1">
+                  <span class="text-warm-800 font-medium">{dev.device}</span>
+                  <span class="text-warm-900 font-bold">{dev.count} ({dev.percent}%)</span>
+                </div>
+                <div class="w-full bg-warm-200 rounded-full h-1.5">
+                  <div class="bg-clay-600 h-1.5 rounded-full" style={`width: ${dev.percent}%`}></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Live Amazon Handmade Scraper & ASIN Tools Panel -->
     <div class="p-6 rounded-2xl bg-white border border-warm-200 shadow-xs space-y-6">
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-warm-100 pb-4">
         <div>
@@ -161,16 +304,19 @@ const actionMsg = Astro.url.searchParams.get('msg');
         </form>
       </div>
 
-      <!-- Targeted Search Scraper & Direct ASIN Importer -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+      <!-- Targeted Search Scraper, Direct ASIN Importer, and ASIN Validator -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 pt-2">
         
         <!-- Custom Query Form -->
-        <form action="/api/admin/action" method="POST" class="p-4 rounded-xl bg-warm-50/80 border border-warm-200 space-y-3">
+        <form action="/api/admin/action" method="POST" class="p-4 rounded-xl bg-warm-50/80 border border-warm-200 space-y-3 flex flex-col justify-between">
           <input type="hidden" name="action" value="scrape-query" />
-          <div>
-            <label class="block text-xs font-bold text-warm-900 uppercase tracking-wider mb-1">
+          <div class="space-y-2">
+            <label class="block text-xs font-bold text-warm-900 uppercase tracking-wider">
               Search Term Scraper
             </label>
+            <p class="text-[11px] text-warm-800/70 leading-snug">
+              Search Amazon Handmade by artisan craft query and automatically filter for authentic goods.
+            </p>
             <input
               type="text"
               name="query"
@@ -179,9 +325,9 @@ const actionMsg = Astro.url.searchParams.get('msg');
               class="w-full px-3 py-2 text-xs rounded-lg border border-warm-300 bg-white focus:outline-none focus:ring-2 focus:ring-clay-500/40"
             />
           </div>
-          <div class="flex items-center justify-between gap-3">
+          <div class="flex items-center justify-between gap-3 pt-2">
             <div class="flex items-center gap-2 text-xs text-warm-800/80">
-              <span>Items to fetch:</span>
+              <span>Limit:</span>
               <select name="limit" class="px-2 py-1 bg-white border border-warm-300 rounded text-xs">
                 <option value="3">3</option>
                 <option value="6" selected>6</option>
@@ -198,21 +344,24 @@ const actionMsg = Astro.url.searchParams.get('msg');
         </form>
 
         <!-- Direct ASIN Importer Form -->
-        <form action="/api/admin/action" method="POST" class="p-4 rounded-xl bg-warm-50/80 border border-warm-200 space-y-3">
+        <form action="/api/admin/action" method="POST" class="p-4 rounded-xl bg-warm-50/80 border border-warm-200 space-y-3 flex flex-col justify-between">
           <input type="hidden" name="action" value="scrape-asins" />
-          <div>
-            <label class="block text-xs font-bold text-warm-900 uppercase tracking-wider mb-1">
-              Direct ASIN Importer
+          <div class="space-y-2">
+            <label class="block text-xs font-bold text-warm-900 uppercase tracking-wider">
+              Direct ASIN / URL Importer
             </label>
-            <input
-              type="text"
+            <p class="text-[11px] text-warm-800/70 leading-snug">
+              Paste comma, space, or newline separated 10-character ASINs or full Amazon product URLs.
+            </p>
+            <textarea
               name="asins"
               required
-              placeholder="e.g. B0BW4LD35T, B00PMF383O"
+              rows="2"
+              placeholder="B0BW4LD35T, https://amazon.com/dp/B00PMF383O"
               class="w-full px-3 py-2 text-xs rounded-lg border border-warm-300 bg-white focus:outline-none focus:ring-2 focus:ring-clay-500/40 font-mono"
-            />
+            ></textarea>
           </div>
-          <div class="flex items-center justify-end">
+          <div class="flex items-center justify-end pt-2">
             <button
               type="submit"
               class="px-3.5 py-1.5 rounded-lg bg-warm-800 hover:bg-warm-900 text-white text-xs font-semibold tracking-wide transition-colors"
@@ -221,6 +370,43 @@ const actionMsg = Astro.url.searchParams.get('msg');
             </button>
           </div>
         </form>
+
+        <!-- Interactive Live ASIN Validator & Diagnostic Inspector -->
+        <div class="p-4 rounded-xl bg-warm-50/80 border border-warm-200 space-y-3 flex flex-col justify-between">
+          <div class="space-y-2">
+            <div class="flex items-center justify-between">
+              <label class="block text-xs font-bold text-warm-900 uppercase tracking-wider">
+                Live ASIN Validator & Inspector
+              </label>
+              <span class="text-[10px] font-bold uppercase bg-clay-100 text-clay-700 px-1.5 py-0.5 rounded">
+                Inspector
+              </span>
+            </div>
+            <p class="text-[11px] text-warm-800/70 leading-snug">
+              Test ASIN format validity, database catalog presence, and live Amazon product reachability.
+            </p>
+            <div class="flex gap-2">
+              <input
+                id="validator-input"
+                type="text"
+                placeholder="Paste ASIN or Amazon URL..."
+                class="flex-1 px-3 py-2 text-xs rounded-lg border border-warm-300 bg-white focus:outline-none focus:ring-2 focus:ring-clay-500/40 font-mono"
+              />
+              <button
+                id="validator-btn"
+                type="button"
+                class="px-3 py-2 bg-clay-600 hover:bg-clay-700 text-white text-xs font-semibold rounded-lg transition-colors flex-shrink-0"
+              >
+                Validate
+              </button>
+            </div>
+          </div>
+
+          <!-- Result Container -->
+          <div id="validator-result" class="hidden p-3 rounded-lg border text-xs space-y-1.5 bg-white">
+            <!-- Injected via JavaScript -->
+          </div>
+        </div>
 
       </div>
     </div>
@@ -455,4 +641,113 @@ const actionMsg = Astro.url.searchParams.get('msg');
     </div>
 
   </div>
+
+  <script>
+    const valBtn = document.getElementById('validator-btn');
+    const valInput = document.getElementById('validator-input') as HTMLInputElement | null;
+    const valResult = document.getElementById('validator-result');
+
+    async function runAsinValidation() {
+      if (!valInput || !valBtn || !valResult) return;
+      const raw = valInput.value.trim();
+      if (!raw) return;
+
+      valBtn.setAttribute('disabled', 'true');
+      valBtn.textContent = 'Checking...';
+      valResult.classList.remove('hidden');
+      valResult.innerHTML = `
+        <div class="flex items-center gap-2 text-warm-800">
+          <svg class="animate-spin h-3.5 w-3.5 text-clay-600" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+          </svg>
+          <span>Verifying ASIN format and querying Amazon product page...</span>
+        </div>
+      `;
+
+      try {
+        const formData = new FormData();
+        formData.append('action', 'validate-asin');
+        formData.append('asin', raw);
+
+        const res = await fetch('/api/admin/action', {
+          method: 'POST',
+          body: formData,
+        });
+
+        const data = await res.json();
+
+        if (!data.valid) {
+          valResult.className = 'p-3 rounded-lg border border-red-200 bg-red-50 text-red-800 text-xs space-y-1';
+          valResult.innerHTML = `
+            <div class="flex items-center gap-1.5 font-bold text-red-700">
+              <span>✕ Invalid ASIN Format</span>
+            </div>
+            <p class="text-[11px]">${data.reason || 'Input does not match standard 10-character alphanumeric ASIN format.'}</p>
+          `;
+          return;
+        }
+
+        const isLive = data.exists;
+        const inDb = data.inDatabase;
+        const cardBg = isLive ? 'bg-emerald-50/50 border-emerald-200' : 'bg-amber-50/50 border-amber-200';
+
+        valResult.className = `p-3 rounded-lg border ${cardBg} text-xs space-y-2`;
+        valResult.innerHTML = `
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="font-mono font-bold text-warm-900 bg-white px-2 py-0.5 rounded border border-warm-200">
+              ${data.asin}
+            </span>
+            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${
+              isLive ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'
+            }">
+              ${isLive ? '✓ Amazon Active' : '✕ Amazon 404 / Inactive'}
+            </span>
+            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${
+              inDb ? 'bg-blue-100 text-blue-800' : 'bg-warm-200 text-warm-800'
+            }">
+              ${inDb ? 'In Local Catalog' : 'Not in Catalog'}
+            </span>
+          </div>
+
+          ${data.title ? `<div class="font-medium text-warm-900 line-clamp-2 text-[11px]">"${data.title}"</div>` : ''}
+
+          <div class="text-[10px] text-warm-800/80">${data.reason}</div>
+
+          ${
+            isLive
+              ? `
+            <div class="pt-1 flex items-center justify-between border-t border-warm-200/60">
+              <a href="https://www.amazon.com/dp/${data.asin}" target="_blank" class="text-clay-600 hover:underline text-[11px] font-medium">
+                Open on Amazon ↗
+              </a>
+              <form action="/api/admin/action" method="POST" class="inline">
+                <input type="hidden" name="action" value="scrape-asins" />
+                <input type="hidden" name="asins" value="${data.asin}" />
+                <button type="submit" class="px-2.5 py-1 bg-warm-900 hover:bg-black text-white text-[10px] font-bold rounded tracking-wide transition-colors">
+                  ${inDb ? 'Re-Ingest / Refresh' : '+ 1-Click Ingest into Catalog'}
+                </button>
+              </form>
+            </div>
+          `
+              : ''
+          }
+        `;
+      } catch (err: any) {
+        valResult.className = 'p-3 rounded-lg border border-red-200 bg-red-50 text-red-800 text-xs';
+        valResult.textContent = `Diagnostic check failed: ${err?.message || err}`;
+      } finally {
+        valBtn.removeAttribute('disabled');
+        valBtn.textContent = 'Validate';
+      }
+    }
+
+    valBtn?.addEventListener('click', runAsinValidation);
+    valInput?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        runAsinValidation();
+      }
+    });
+  </script>
 </Layout>
