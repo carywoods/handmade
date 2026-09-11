@@ -3,9 +3,16 @@
  */
 
 export function getAmazonTag(): string {
-  // Use environment variable with safe fallback across Vite and Node
-  // @ts-ignore
-  return (typeof import.meta !== 'undefined' && import.meta.env?.AMAZON_TAG) || process.env.AMAZON_TAG || 'itsmadebyha0a-20';
+  return process.env.AMAZON_TAG || 'itsmadebyha0a-20';
+}
+
+// Fail loudly at boot when running without a configured tag, instead of silently
+// serving the fallback (silence here = $0 attributed commissions).
+if (process.env.NODE_ENV === 'production' && !process.env.AMAZON_TAG) {
+  console.warn(
+    '[affiliate] AMAZON_TAG is NOT set in production. Clicks will use the fallback tag. ' +
+    'Verify it matches your registered Amazon Associates tracking ID or set AMAZON_TAG.'
+  );
 }
 
 import { isValidAsin, normalizeAsin, extractAsin } from './asin.js';
