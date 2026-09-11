@@ -1,9 +1,12 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 import ProductCard from '../../components/ProductCard.astro';
+import Pagination from '../../components/Pagination.astro';
 import { getItems } from '../../lib/db';
 
 const { category: slug } = Astro.params;
+
+const PER_PAGE = 24;
 
 const CATEGORY_MAP: Record<string, { name: string; description: string }> = {
   'woodworking': {
@@ -33,11 +36,27 @@ const categoryInfo = (slug && CATEGORY_MAP[slug]) || {
   description: 'Authentic handmade creations by verified independent craftspeople.',
 };
 
-const { items, total } = getItems({
+const rawPage = parseInt(Astro.url.searchParams.get('page') || '1', 10);
+const requestedPage = Number.isFinite(rawPage) && rawPage >= 1 ? Math.floor(rawPage) : 1;
+
+const sampled = getItems({
   category: categoryInfo.name,
   activeOnly: true,
-  limit: 48,
+  limit: PER_PAGE,
+  offset: (requestedPage - 1) * PER_PAGE,
 });
+
+const totalPages = Math.max(1, Math.ceil(sampled.total / PER_PAGE));
+const page = Math.min(requestedPage, totalPages);
+
+const { items, total } = page === requestedPage
+  ? sampled
+  : getItems({
+      category: categoryInfo.name,
+      activeOnly: true,
+      limit: PER_PAGE,
+      offset: (page - 1) * PER_PAGE,
+    });
 ---
 
 <Layout
@@ -91,6 +110,13 @@ const { items, total } = getItems({
           <ProductCard item={item} />
         ))}
       </div>
+
+      <Pagination
+        base={`/category/${slug}`}
+        page={page}
+        totalPages={totalPages}
+        params={{}}
+      />
     )}
   </section>
 </Layout>

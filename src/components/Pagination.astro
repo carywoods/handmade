@@ -1,0 +1,79 @@
+---
+/**
+ * Pagination component — builds prev/next + numbered page links while
+ * preserving the active query params (q, category, sort).
+ *
+ * Props:
+ *   base       - path the page links point at (e.g. "/" or "/category/woodworking")
+ *   page       - current 1-indexed page number (already clamped)
+ *   totalPages - total number of pages
+ *   params     - active URL query params to carry across pages (excluding page)
+ */
+interface Props {
+  base: string;
+  page: number;
+  totalPages: number;
+  params: Record<string, string | undefined>;
+}
+
+const { base, page, totalPages, params } = Astro.props;
+
+function buildUrl(targetPage: number): string {
+  const sp = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value && value.length > 0 && value !== 'all') {
+      sp.set(key, value);
+    }
+  }
+  if (targetPage > 1) sp.set('page', String(targetPage));
+  const qs = sp.toString();
+  return qs ? `${base}?${qs}` : base;
+}
+
+// Page window: always 1 and totalPages, plus {page-1, page, page+1},
+// compressed with ellipses when gaps appear. Handles arbitrarily large catalogs.
+const window: (number | 'gap')[] = [];
+{
+  const candidates = new Set<number>([1, totalPages, page - 1, page, page + 1]);
+  const sorted = [...candidates].filter((p) => p >= 1 && p <= totalPages).sort((a, b) => a - b);
+  let prev = 0;
+  for (const p of sorted) {
+    if (prev > 0 && p - prev > 1) window.push('gap');
+    window.push(p);
+    prev = p;
+  }
+}
+
+const prevUrl = page > 1 ? buildUrl(page - 1) : null;
+const nextUrl = page < totalPages ? buildUrl(page + 1) : null;
+
+const baseBtn =
+  'inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-semibold tracking-wide transition-all';
+const idleBtn = 'bg-white hover:bg-warm-200/60 text-warm-800 border border-warm-200/80';
+const disabledBtn = 'bg-white/60 text-warm-400 border border-warm-200/50 cursor-not-allowed select-none';
+const activeBtn = 'bg-warm-900 text-white shadow-sm';
+---
+
+{totalPages > 1 ? (
+  <nav class="flex items-center justify-center gap-2 mt-12" aria-label="Pagination">
+    {prevUrl ? <a href={prevUrl} class={`${baseBtn} ${idleBtn}`}>&larr; Prev</a> : <span class={`${baseBtn} ${disabledBtn}`}>&larr; Prev</span>}
+
+    {window.map((p) =>
+      p === 'gap' ? (
+        <span class="px-2 text-warm-800/60 select-none">&hellip;</span>
+      ) : (
+        <a
+          href={buildUrl(p)}
+          aria-current={p === page ? 'page' : undefined}
+          class={`${baseBtn} ${p === page ? activeBtn : idleBtn}`}
+        >
+          {p}
+        </a>
+      )
+    )}
+
+    {nextUrl ? <a href={nextUrl} class={`${baseBtn} ${idleBtn}`}>Next &rarr;</a> : <span class={`${baseBtn} ${disabledBtn}`}>Next &rarr;</span>}
+  </nav>
+) : (
+  ''
+)}

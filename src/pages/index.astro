@@ -1,19 +1,43 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import ProductCard from '../components/ProductCard.astro';
+import Pagination from '../components/Pagination.astro';
 import { getItems, getCategoriesWithCounts } from '../lib/db';
+
+const PER_PAGE = 24;
 
 const search = Astro.url.searchParams.get('q') || '';
 const category = Astro.url.searchParams.get('category') || 'all';
 const sort = (Astro.url.searchParams.get('sort') as 'newest' | 'price_asc' | 'price_desc') || 'newest';
+const rawPage = parseInt(Astro.url.searchParams.get('page') || '1', 10);
+const requestedPage = Number.isFinite(rawPage) && rawPage >= 1 ? Math.floor(rawPage) : 1;
 
-const { items, total } = getItems({
+// Fetch one page ahead of the total to detect a valid last-page clamp.
+const sampled = getItems({
   category: category !== 'all' ? category : undefined,
   search: search || undefined,
   sortBy: sort,
   activeOnly: true,
-  limit: 36,
+  limit: PER_PAGE,
+  offset: (requestedPage - 1) * PER_PAGE,
 });
+
+const totalPages = Math.max(1, Math.ceil(sampled.total / PER_PAGE));
+const page = Math.min(requestedPage, totalPages);
+
+const { items, total } = page === requestedPage
+  ? sampled
+  : getItems({
+      category: category !== 'all' ? category : undefined,
+      search: search || undefined,
+      sortBy: sort,
+      activeOnly: true,
+      limit: PER_PAGE,
+      offset: (page - 1) * PER_PAGE,
+    });
+
+const rangeStart = total === 0 ? 0 : (page - 1) * PER_PAGE + 1;
+const rangeEnd = Math.min(page * PER_PAGE, total);
 
 const categoryList = [
   { name: 'All Pieces', id: 'all' },
@@ -110,9 +134,10 @@ const categoryList = [
     <!-- Catalog Status Bar -->
     <div class="py-4 flex items-center justify-between text-xs text-warm-800/70">
       <span>
-        Showing <strong class="text-warm-900 font-semibold">{items.length}</strong> of{' '}
+        Showing <strong class="text-warm-900 font-semibold">{rangeStart}&ndash;{rangeEnd}</strong> of{' '}
         <strong class="text-warm-900 font-semibold">{total}</strong> verified handmade pieces
         {search && <span> matching "<em>{search}</em>"</span>}
+        {totalPages > 1 && <span>(page {page} of {totalPages})</span>}
       </span>
       {category !== 'all' && (
         <a href="/" class="text-clay-600 hover:underline">
@@ -143,6 +168,13 @@ const categoryList = [
           <ProductCard item={item} />
         ))}
       </div>
+
+      <Pagination
+        base="/"
+        page={page}
+        totalPages={totalPages}
+        params={{ q: search || undefined, category, sort }}
+      />
     )}
   </section>
 
