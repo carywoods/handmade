@@ -2,6 +2,7 @@ import 'dotenv/config';
 import { getDb, upsertItem, logSystemEvent } from '../src/lib/db.js';
 import { formatAffiliateUrl } from '../src/lib/affiliate.js';
 import { isValidAsin } from '../src/lib/asin.js';
+import { seed } from './seed.js';
 
 /**
  * Filter to weed out mass-produced goods, dropshippers, and factory resellers.
@@ -159,6 +160,8 @@ const DISCOVERY_CANDIDATES: RawProductInput[] = [
 
 export async function runIngestion() {
   console.log('--- Starting Monthly Artisan Product Ingestion Run ---');
+  // Sync full verified artisan catalog snapshot
+  seed();
   const now = new Date().toISOString();
 
   let accepted = 0;

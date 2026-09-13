@@ -4,6 +4,7 @@ import { toggleItemStatus, pruneInactiveItems, logSystemEvent } from '../../../l
 import { runIngestion } from '../../../../scripts/ingest';
 import { runLinkRotChecker } from '../../../../scripts/check-rot';
 import { scrapeAndUploadCatalog } from '../../../lib/scraper';
+import { seed } from '../../../../scripts/seed';
 
 export const POST: APIRoute = async ({ request, cookies, redirect }) => {
   if (!isAdminAuthenticated(cookies)) {
@@ -21,6 +22,8 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
       }
     } else if (action === 'prune-inactive') {
       pruneInactiveItems();
+    } else if (action === 'sync-catalog' || action === 'seed-catalog') {
+      seed();
     } else if (action === 'run-ingestion') {
       await runIngestion();
     } else if (action === 'run-rot-check') {

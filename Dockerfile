@@ -40,5 +40,5 @@ VOLUME ["/app/data"]
 
 EXPOSE 3000
 
-# Run seed on initial container launch if database is absent, then start server
-CMD ["sh", "-c", "if [ ! -f /app/data/handmade.db ]; then tsx scripts/seed.ts; fi && node ./dist/server/entry.mjs"]
+# Run seed on container launch to ensure persistent volume database is synced, then start server
+CMD ["sh", "-c", "tsx scripts/seed.ts && node ./dist/server/entry.mjs"]

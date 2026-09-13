@@ -561,6 +561,20 @@ if (umamiId) activeExternalAnalytics.push(`Umami (${umamiId.slice(0, 8)}...)`);
       </div>
 
       <div class="flex flex-wrap gap-3">
+        <!-- Sync Verified Catalog -->
+        <form action="/api/admin/action" method="POST">
+          <input type="hidden" name="action" value="sync-catalog" />
+          <button
+            type="submit"
+            class="px-4 py-2.5 rounded-xl bg-clay-600 hover:bg-clay-700 text-white text-xs font-semibold tracking-wide flex items-center gap-2 shadow-xs transition-colors"
+          >
+            <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            Sync Verified Catalog (271 Items)
+          </button>
+        </form>
+
         <!-- Trigger Ingestion -->
         <form action="/api/admin/action" method="POST">
           <input type="hidden" name="action" value="run-ingestion" />
