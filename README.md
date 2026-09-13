@@ -15,6 +15,7 @@ A high-performance, operationally passive curation platform showcasing genuine i
 - **Automated Workers & CLI Utilities**:
   - `npm run db:audit` — Multimodal AI vision audit inspecting all catalog items and imagery
   - `npm run db:purge` — Purges non-handmade, factory, or duplicate items from SQLite
+  - `npm run db:expand` — Adds verified artisan handmade items into catalog and updates snapshots
   - `npm run scrape` — Live Amazon Handmade crawler with two-tier vision filtering
   - `npm run worker:check-rot` — Automated link-rot checker to flag 404s and de-list unavailable products
 - **Operator Dashboard (`/admin`)**: Password-protected suite showing real-time traffic, outbound affiliate click counters, category breakdowns, logs, and manual worker triggers
@@ -26,11 +27,12 @@ A high-performance, operationally passive curation platform showcasing genuine i
 ```text
 handmade/
 ├── data/
-│   ├── handmade.db               # Local SQLite database (135 verified artisan goods)
+│   ├── handmade.db               # Local SQLite database (271 verified artisan goods)
 │   └── verified-catalog.json     # Backup snapshot of verified authentic items
 ├── public/                       # Static assets & favicon
 ├── scripts/
-│   ├── seed.ts                   # Seeds 135 verified artisan goods from snapshot
+│   ├── seed.ts                   # Seeds verified artisan goods from snapshot
+│   ├── add-catalog-items.ts      # Expands catalog with verified artisan goods
 │   ├── seed-data.json            # Pristine catalog dataset for initial deployments
 │   ├── audit-catalog.ts          # AI Vision audit script
 │   ├── purge-non-handmade.ts     # Curated cleanup script

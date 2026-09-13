@@ -17,7 +17,8 @@
     "scrape": "tsx scripts/scrape.ts",
     "db:seed": "tsx scripts/seed.ts",
     "db:audit": "tsx scripts/audit-catalog.ts",
-    "db:purge": "tsx scripts/purge-non-handmade.ts"
+    "db:purge": "tsx scripts/purge-non-handmade.ts",
+    "db:expand": "tsx scripts/add-catalog-items.ts"
   },
   "dependencies": {
     "@astrojs/node": "^11.1.5",
