@@ -131,8 +131,9 @@ const FORBIDDEN_PATTERNS = [
   /\b(nylon|polyester|acrylic|spandex|microfiber|fleece|rayon)\b/i,
   /\b(cheesecloth|tulle)\b/i,
 
-  // Electronics & battery gadgets
+  // Electronics, laptops & tech gadgets
   /\b(usb|rechargeable|bluetooth|electric|battery operated)\b/i,
+  /\b(laptop|macbook|computer|pc\b|monitor|keyboard|mouse\s*pad|mousepad|desk\s*mat|desk\s*pad|cable\s*organizer|cable\s*wrap|cable\s*tidy|cord\s*organizer|cord\s*wrap|cord\s*tidy|airtag|tracker\s*holder|tablet\s*case|ipad\s*case|phone\s*case|iphone\s*case|charger|docking\s*station|earbuds?|headphones?)\b/i,
 
   // Known mass-market factory brands & dropship factories
   /(bedsure|boll\s*&\s*branch|carhartt|unhide|vancasso|famiware|bestone|hasense|yun\s*tao|kanwone|lareina|webi|smlixe|the sak|iswee|moramora|dlim home|alashan|patdrea|bilin gaier|xuehua|isaenne|moccool|friestore|flym|petekoğlu|minupwell|emme|spencer & whitney|long create|lipper\s*international|aidea|melvvi|hrastany|joy&grace|fairwood\s*way|house\s*of\s*jack|apotheke|archipelago\s*botanicals|m&sense)/i,
@@ -187,10 +188,12 @@ Proposed Category: "${targetCategory || 'Auto-Detect'}"
 STRICT EVALUATION CRITERIA:
 1. MUST BE A FINISHED ARTISAN CRAFT:
    - The picture must show a finished, tangible handcrafted piece (e.g. a hand-thrown ceramic mug/vase/bowl, hand-carved cutting board or wooden spoon, hand-stitched leather wallet/journal/bag, handwoven or knit blanket/pillow/throw, hand-poured beeswax candle or blacksmith forged iron hook).
-2. IMMEDIATE REJECTIONS (Set is_handmade = false):
+2. IMMEDIATE REJECTIONS (Set is_handmade = false, category = "Rejected"):
+   - Laptops, computers, monitors, screens, keyboards, computer mice, mouse pads, desk mats, charging cables, power bricks, phone/tablet cases, or electronic gadgets.
+   - If a laptop, computer screen, or office tech device is the subject or prominent focal element of the image, REJECT IMMEDIATELY.
    - Any tool, machine, electrical appliance, motor, or device used to MAKE things (e.g. pottery wheels, branding irons, stamps, chisels, molds, laser engravers, 3D printers, rotary tools).
    - Any raw materials, blanks, DIY parts, or craft assembly kits.
-   - Any multi-packs, wholesale lots, or obvious factory mass-produced items.
+   - Any commercial perfumes, cosmetics, mass-produced merchandise, multi-packs, or wholesale factory goods.
    - Irrelevant, blank, or broken pictures.
 
 Respond ONLY with this JSON structure:
@@ -198,47 +201,67 @@ Respond ONLY with this JSON structure:
   "is_handmade": true or false,
   "confidence": 0.0 to 1.0,
   "category": "Woodworking" | "Pottery & Ceramics" | "Leather Goods" | "Textiles" | "Home & Living" | "Rejected",
-  "reason": "Clear concise rationale explaining whether the item is a finished artisan piece or a rejected tool/machine/mass-produced product"
+  "reason": "Clear concise rationale explaining whether the item is a finished artisan piece or a rejected laptop/tech/tool/mass-produced product"
 }`;
 
   try {
     const base64Data = imageBuffer.toString('base64');
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+    const modelsToTry = ['gemini-3.6-flash', 'gemini-3.5-flash', 'gemini-2.5-flash'];
 
     let res: Response | null = null;
-    for (let attempt = 0; attempt < 4; attempt++) {
-      res = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [
-            {
-              parts: [
-                {
-                  inline_data: {
-                    mime_type: mimeType,
-                    data: base64Data,
-                  },
-                },
-                { text: prompt },
-              ],
-            },
-          ],
-          generationConfig: {
-            response_mime_type: 'application/json',
-            temperature: 0.1,
-          },
-        }),
-      });
+    let successfulModel = '';
 
-      if (res.status === 429 && attempt < 3) {
-        const delay = 4000 * (attempt + 1);
-        console.log(`[VISION] 429 rate limit, waiting ${delay}ms before retry...`);
-        await new Promise((r) => setTimeout(r, delay));
-        continue;
+    for (const modelName of modelsToTry) {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          res = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [
+                {
+                  parts: [
+                    {
+                      inline_data: {
+                        mime_type: mimeType,
+                        data: base64Data,
+                      },
+                    },
+                    { text: prompt },
+                  ],
+                },
+              ],
+              generationConfig: {
+                response_mime_type: 'application/json',
+                temperature: 0.1,
+              },
+            }),
+          });
+        } catch (networkErr: any) {
+          if (attempt < 2) {
+            const delay = 1500 * Math.pow(2, attempt);
+            await new Promise((r) => setTimeout(r, delay));
+            continue;
+          }
+          break;
+        }
+
+        if (res && (res.status === 429 || res.status === 503 || res.status === 500) && attempt < 2) {
+          const delay = 2000 * Math.pow(2, attempt);
+          await new Promise((r) => setTimeout(r, delay));
+          continue;
+        }
+        break;
       }
-      break;
+
+      if (res && res.ok) {
+        successfulModel = modelName;
+        break;
+      }
     }
+
 
     if (!res || !res.ok) {
       console.warn(`[VISION] Gemini API responded with status ${res?.status}`);

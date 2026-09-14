@@ -121,7 +121,7 @@ const DISCOVERY_CANDIDATES: RawProductInput[] = [
     title: 'Solid Cherry Wood Hand-Carved Dumpling & Pastry Board',
     artisan_name: 'Hearth & Chisel',
     description: 'Carved from single block Pennsylvania cherry wood with traditional relief carved edges and food-safe walnut oil finish.',
-    image_url: 'https://images.unsplash.com/photo-1590736704728-f4730bb30770?auto=format&fit=crop&w=900&q=80',
+    image_url: 'https://m.media-amazon.com/images/I/61JfSMhoBdL._AC_SL1200_.jpg',
     price_approx: 62.00,
   },
   {
@@ -129,7 +129,7 @@ const DISCOVERY_CANDIDATES: RawProductInput[] = [
     title: 'Terracotta Hand-Pressed Wall Planter with Drainage Hole',
     artisan_name: 'Mud & Petal Clay Studio',
     description: 'Hand-shaped from unglazed terracotta with sunburst textured motif. Porous earthenware breathable planter for succulents and herbs.',
-    image_url: 'https://images.unsplash.com/photo-1485955900006-10f4d324d411?auto=format&fit=crop&w=900&q=80',
+    image_url: 'https://m.media-amazon.com/images/I/81DsvurnVWL._AC_SL1200_.jpg',
     price_approx: 34.00,
   },
   {
@@ -137,7 +137,7 @@ const DISCOVERY_CANDIDATES: RawProductInput[] = [
     title: 'Generic Wholesale Pack of 100 Plastic Molded Mugs Dropship',
     artisan_name: 'Factory Reseller Wholesale',
     description: 'Factory made cheap mass-produced wholesale plastic injection cups.',
-    image_url: 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?auto=format&fit=crop&w=900&q=80',
+    image_url: 'https://images.unsplash.com/photo-1514228742587-6b1558fcca3d?auto=format&fit=crop&w=900&q=80',
     price_approx: 9.99,
   },
   {
@@ -145,7 +145,7 @@ const DISCOVERY_CANDIDATES: RawProductInput[] = [
     title: 'Hand-Forged Damascus Steel EDC Pocket Knife with Walnut Scales',
     artisan_name: 'Iron Peak Bladesmiths',
     description: 'Folded 1095 and 15N20 high-carbon steel handcrafted by bladesmiths. Brass bolsters and hand-rubbed walnut handle scales.',
-    image_url: 'https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?auto=format&fit=crop&w=900&q=80',
+    image_url: 'https://m.media-amazon.com/images/I/61PMifI1oIL._AC_SL1200_.jpg',
     price_approx: 115.00,
   },
   {
@@ -153,7 +153,7 @@ const DISCOVERY_CANDIDATES: RawProductInput[] = [
     title: 'Hand-Spun Alpaca Wool Cable Beanie in Natural Fawn',
     artisan_name: 'Andean Mountain Fibers',
     description: 'Undyed pure Peruvian baby alpaca hand-spun and knit on circular needles. Incredibly soft, featherlight, and non-itchy warmth.',
-    image_url: 'https://images.unsplash.com/photo-1528459801416-a9e53bbf4e17?auto=format&fit=crop&w=900&q=80',
+    image_url: 'https://m.media-amazon.com/images/I/81kC2tzcd0L._AC_SL1200_.jpg',
     price_approx: 45.00,
   }
 ];

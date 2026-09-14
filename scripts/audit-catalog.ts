@@ -47,6 +47,11 @@ export async function runCatalogAudit(options: { pruneDeleted?: boolean } = {}) 
       item.category
     );
 
+    if (evalResult.reason.includes('throttled') || evalResult.reason.includes('unavailable')) {
+      console.warn(`  ⚠️  API THROTTLED / RATE LIMITED: ${evalResult.reason}. Retaining item.`);
+      continue;
+    }
+
     if (!evalResult.has_valid_picture || !evalResult.is_handmade) {
       rejectedCount++;
       console.warn(`  ❌ REJECTED: ${evalResult.reason}`);
