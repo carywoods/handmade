@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { getDb, upsertItem, logSystemEvent } from '../src/lib/db.js';
 import { formatAffiliateUrl } from '../src/lib/affiliate.js';
+import { ensureCandidatePoolAvailable } from '../src/lib/candidate-pool.js';
 
 interface SeedItem {
   asin: string;
@@ -53,6 +54,13 @@ export function seed() {
 
   logSystemEvent('database_seed', 'success', `Seeded ${count} verified handmade items across categories`);
   console.log(`Successfully seeded ${count} artisan products into data/handmade.db`);
+
+  // Ensure candidate reserve pool is initialized for daily additions
+  try {
+    ensureCandidatePoolAvailable();
+  } catch (poolErr) {
+    console.warn('Could not initialize candidate pool during seed:', poolErr);
+  }
 }
 
 // Run when called directly

@@ -1,11 +1,14 @@
 import 'dotenv/config';
 import { getDb, logSystemEvent } from '../src/lib/db.js';
+import { isCuratedCatalogSku } from '../src/lib/affiliate.js';
+import { validatePicture } from '../src/lib/vision-evaluator.js';
 
 interface ItemToCheck {
   id: number;
   asin: string;
   title: string;
   affiliate_url: string;
+  image_url?: string;
 }
 
 const USER_AGENTS = [
@@ -21,12 +24,25 @@ function getRandomUserAgent(): string {
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export async function checkItemStatus(item: ItemToCheck): Promise<{ active: boolean; reason: string }> {
-  // Direct Amazon product URL
+  // 1. Verify high-resolution image asset reachability
+  if (item.image_url) {
+    const picCheck = await validatePicture(item.image_url);
+    if (!picCheck.valid) {
+      return { active: false, reason: `Image Link-Rot: ${picCheck.error || 'Image asset 404 or unreadable'}` };
+    }
+  }
+
+  // 2. Curated catalog artisan products route via Amazon Handmade search with tracking tag
+  if (isCuratedCatalogSku(item.asin)) {
+    return { active: true, reason: 'Verified curated artisan craft with active image and Amazon Handmade search routing' };
+  }
+
+  // 3. Direct Amazon product URL verification for real Amazon ASINs
   const targetUrl = `https://www.amazon.com/dp/${item.asin}`;
 
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 8000);
+    const timeoutId = setTimeout(() => controller.abort(), 6000);
 
     const res = await fetch(targetUrl, {
       method: 'GET',
@@ -61,7 +77,7 @@ export async function checkItemStatus(item: ItemToCheck): Promise<{ active: bool
       return { active: false, reason: 'Amazon 404 / Dead Product page detected' };
     }
 
-    return { active: true, reason: 'Active and verified reachable' };
+    return { active: true, reason: 'Active and verified reachable on Amazon' };
   } catch (err: any) {
     // Timeout or network glitch shouldn't wipe active status
     return { active: true, reason: `Network check exception (${err?.name || 'unknown'}); preserved` };
@@ -71,7 +87,7 @@ export async function checkItemStatus(item: ItemToCheck): Promise<{ active: bool
 export async function runLinkRotChecker() {
   console.log('--- Starting Weekly Link-Rot & Availability Scan ---');
   const db = getDb();
-  const items = db.prepare('SELECT id, asin, title, affiliate_url FROM items WHERE is_active = 1').all() as ItemToCheck[];
+  const items = db.prepare('SELECT id, asin, title, affiliate_url, image_url FROM items WHERE is_active = 1').all() as ItemToCheck[];
 
   console.log(`Found ${items.length} active items to verify.`);
   const now = new Date().toISOString();

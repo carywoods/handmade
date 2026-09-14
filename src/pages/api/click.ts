@@ -40,6 +40,6 @@ export const GET: APIRoute = async ({ request, cookies, redirect }) => {
   recordItemClick(cleanAsin, item?.id || null, visitorId, referrer, geo.countryCode, geo.countryName);
 
   // Redirect to Amazon with programmatic affiliate tag injected
-  const destination = formatAffiliateUrl(cleanAsin);
+  const destination = formatAffiliateUrl(cleanAsin, item?.title);
   return redirect(destination, 302);
 };

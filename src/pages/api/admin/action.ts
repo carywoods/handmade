@@ -24,10 +24,22 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
       pruneInactiveItems();
     } else if (action === 'sync-catalog' || action === 'seed-catalog') {
       seed();
+    } else if (action === 'run-daily-addition') {
+      const count = parseInt(formData.get('count')?.toString() || '0', 10) || undefined;
+      const { runDailyAddition } = await import('../../../lib/maintenance');
+      await runDailyAddition(count);
+    } else if (action === 'run-weekly-scan') {
+      const { runWeeklyMaintenanceScan } = await import('../../../lib/maintenance');
+      await runWeeklyMaintenanceScan();
+    } else if (action === 'generate-weekly-log') {
+      const weekId = formData.get('weekId')?.toString() || undefined;
+      const { generateWeeklyLog } = await import('../../../lib/maintenance');
+      generateWeeklyLog(weekId);
     } else if (action === 'run-ingestion') {
       await runIngestion();
     } else if (action === 'run-rot-check') {
-      await runLinkRotChecker();
+      const { runWeeklyMaintenanceScan } = await import('../../../lib/maintenance');
+      await runWeeklyMaintenanceScan();
     } else if (action === 'run-scraper') {
       const limit = parseInt(formData.get('limit')?.toString() || '4', 10);
       await scrapeAndUploadCatalog({ maxPerCategory: limit });

@@ -66,6 +66,48 @@ export interface SystemLog {
   created_at: string;
 }
 
+export interface CandidateItem {
+  id: number;
+  asin: string;
+  title: string;
+  artisan_name: string | null;
+  category: string;
+  description: string | null;
+  image_url: string;
+  price_approx: number | null;
+  status: 'pending' | 'added' | 'rejected';
+  rejection_reason: string | null;
+  created_at: string;
+}
+
+export interface DailyAddition {
+  id: number;
+  asin: string;
+  week_id: string;
+  added_date: string;
+  category: string;
+  title: string;
+  artisan_name: string | null;
+  price_approx: number | null;
+  verification_status: string | null;
+  created_at: string;
+}
+
+export interface WeeklyLog {
+  id: number;
+  week_id: string;
+  start_date: string;
+  end_date: string;
+  items_added_count: number;
+  items_checked_count: number;
+  items_deactivated_count: number;
+  total_active_items: number;
+  markdown_content: string;
+  status: 'in_progress' | 'completed';
+  created_at: string;
+  updated_at: string;
+}
+
 let dbInstance: Database.Database | null = null;
 
 export function getDb(): Database.Database {
@@ -136,6 +178,54 @@ function initTables(db: Database.Database) {
       details TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
+
+    CREATE TABLE IF NOT EXISTS candidate_pool (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      asin TEXT UNIQUE NOT NULL,
+      title TEXT NOT NULL,
+      artisan_name TEXT,
+      category TEXT NOT NULL,
+      description TEXT,
+      image_url TEXT NOT NULL,
+      price_approx REAL,
+      status TEXT DEFAULT 'pending',
+      rejection_reason TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS daily_additions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      asin TEXT NOT NULL,
+      week_id TEXT NOT NULL,
+      added_date TEXT NOT NULL,
+      category TEXT NOT NULL,
+      title TEXT NOT NULL,
+      artisan_name TEXT,
+      price_approx REAL,
+      verification_status TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS weekly_logs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      week_id TEXT UNIQUE NOT NULL,
+      start_date TEXT NOT NULL,
+      end_date TEXT NOT NULL,
+      items_added_count INTEGER DEFAULT 0,
+      items_checked_count INTEGER DEFAULT 0,
+      items_deactivated_count INTEGER DEFAULT 0,
+      total_active_items INTEGER DEFAULT 0,
+      markdown_content TEXT NOT NULL,
+      status TEXT DEFAULT 'in_progress',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS maintenance_schedule (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
   `);
 
   // Safe schema migration for existing databases before creating indexes
@@ -197,6 +287,12 @@ function initTables(db: Database.Database) {
     CREATE INDEX IF NOT EXISTS idx_item_clicks_domain ON item_clicks(referrer_domain);
 
     CREATE INDEX IF NOT EXISTS idx_system_logs_created ON system_logs(created_at);
+
+    CREATE INDEX IF NOT EXISTS idx_candidate_pool_status ON candidate_pool(status);
+    CREATE INDEX IF NOT EXISTS idx_candidate_pool_category ON candidate_pool(category);
+    CREATE INDEX IF NOT EXISTS idx_daily_additions_week ON daily_additions(week_id);
+    CREATE INDEX IF NOT EXISTS idx_daily_additions_date ON daily_additions(added_date);
+    CREATE INDEX IF NOT EXISTS idx_weekly_logs_week ON weekly_logs(week_id);
   `);
 }
 
@@ -932,4 +1028,205 @@ export function upsertItem(item: Omit<Item, 'id' | 'created_at'>): void {
     ...item,
     asin: cleanAsin,
   });
+}
+
+// ----------------------------------------------------
+// Maintenance Schedule Helpers
+// ----------------------------------------------------
+export function getScheduleValue(key: string): string | null {
+  const db = getDb();
+  const row = db.prepare('SELECT value FROM maintenance_schedule WHERE key = ?').get(key) as { value: string } | undefined;
+  return row ? row.value : null;
+}
+
+export function setScheduleValue(key: string, value: string): void {
+  const db = getDb();
+  db.prepare(`
+    INSERT INTO maintenance_schedule (key, value, updated_at)
+    VALUES (?, ?, CURRENT_TIMESTAMP)
+    ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP
+  `).run(key, value);
+}
+
+// ----------------------------------------------------
+// Candidate Pool Helpers
+// ----------------------------------------------------
+export function addCandidatesToPool(
+  candidates: Array<{
+    asin: string;
+    title: string;
+    artisan_name?: string | null;
+    category: string;
+    description?: string | null;
+    image_url: string;
+    price_approx?: number | null;
+  }>
+): number {
+  const db = getDb();
+  let added = 0;
+  const insert = db.prepare(`
+    INSERT OR IGNORE INTO candidate_pool (
+      asin, title, artisan_name, category, description, image_url, price_approx, status
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, 'pending')
+  `);
+
+  const tx = db.transaction((list) => {
+    for (const c of list) {
+      const cleanAsin = normalizeAsin(c.asin);
+      if (!cleanAsin) continue;
+      const res = insert.run(
+        cleanAsin,
+        c.title,
+        c.artisan_name || 'Independent Artisan',
+        c.category,
+        c.description || '',
+        c.image_url,
+        c.price_approx || null
+      );
+      if (res.changes > 0) added++;
+    }
+  });
+
+  tx(candidates);
+  return added;
+}
+
+export function getPendingCandidates(limit = 10): CandidateItem[] {
+  const db = getDb();
+  return db
+    .prepare(`
+      SELECT * FROM candidate_pool
+      WHERE status = 'pending'
+        AND asin NOT IN (SELECT asin FROM items)
+      ORDER BY id ASC
+      LIMIT ?
+    `)
+    .all(limit) as CandidateItem[];
+}
+
+export function updateCandidateStatus(asin: string, status: 'pending' | 'added' | 'rejected', reason?: string): void {
+  const cleanAsin = normalizeAsin(asin);
+  if (!cleanAsin) return;
+  const db = getDb();
+  db.prepare(`
+    UPDATE candidate_pool
+    SET status = ?, rejection_reason = ?
+    WHERE asin = ?
+  `).run(status, reason || null, cleanAsin);
+}
+
+export function getPoolCounts(): { pending: number; added: number; rejected: number; total: number } {
+  const db = getDb();
+  const rows = db.prepare(`
+    SELECT
+      COUNT(*) as total,
+      SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,
+      SUM(CASE WHEN status = 'added' THEN 1 ELSE 0 END) as added,
+      SUM(CASE WHEN status = 'rejected' THEN 1 ELSE 0 END) as rejected
+    FROM candidate_pool
+  `).get() as { total: number; pending: number; added: number; rejected: number };
+
+  return {
+    total: rows.total || 0,
+    pending: rows.pending || 0,
+    added: rows.added || 0,
+    rejected: rows.rejected || 0,
+  };
+}
+
+// ----------------------------------------------------
+// Daily Additions Helpers
+// ----------------------------------------------------
+export function recordDailyAddition(addition: {
+  asin: string;
+  week_id: string;
+  added_date: string;
+  category: string;
+  title: string;
+  artisan_name?: string | null;
+  price_approx?: number | null;
+  verification_status?: string | null;
+}): void {
+  const db = getDb();
+  db.prepare(`
+    INSERT INTO daily_additions (
+      asin, week_id, added_date, category, title, artisan_name, price_approx, verification_status
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    addition.asin,
+    addition.week_id,
+    addition.added_date,
+    addition.category,
+    addition.title,
+    addition.artisan_name || null,
+    addition.price_approx ?? null,
+    addition.verification_status || 'Verified'
+  );
+}
+
+export function getDailyAdditionsForWeek(weekId: string): DailyAddition[] {
+  const db = getDb();
+  return db
+    .prepare('SELECT * FROM daily_additions WHERE week_id = ? ORDER BY added_date ASC, id ASC')
+    .all(weekId) as DailyAddition[];
+}
+
+export function getDailyAdditionsForDate(dateStr: string): DailyAddition[] {
+  const db = getDb();
+  return db
+    .prepare('SELECT * FROM daily_additions WHERE added_date = ? ORDER BY id ASC')
+    .all(dateStr) as DailyAddition[];
+}
+
+// ----------------------------------------------------
+// Weekly Logs Helpers
+// ----------------------------------------------------
+export function upsertWeeklyLog(log: {
+  week_id: string;
+  start_date: string;
+  end_date: string;
+  items_added_count: number;
+  items_checked_count: number;
+  items_deactivated_count: number;
+  total_active_items: number;
+  markdown_content: string;
+  status: 'in_progress' | 'completed';
+}): void {
+  const db = getDb();
+  db.prepare(`
+    INSERT INTO weekly_logs (
+      week_id, start_date, end_date, items_added_count,
+      items_checked_count, items_deactivated_count, total_active_items,
+      markdown_content, status, updated_at
+    ) VALUES (
+      @week_id, @start_date, @end_date, @items_added_count,
+      @items_checked_count, @items_deactivated_count, @total_active_items,
+      @markdown_content, @status, CURRENT_TIMESTAMP
+    )
+    ON CONFLICT(week_id) DO UPDATE SET
+      start_date = excluded.start_date,
+      end_date = excluded.end_date,
+      items_added_count = excluded.items_added_count,
+      items_checked_count = excluded.items_checked_count,
+      items_deactivated_count = excluded.items_deactivated_count,
+      total_active_items = excluded.total_active_items,
+      markdown_content = excluded.markdown_content,
+      status = excluded.status,
+      updated_at = CURRENT_TIMESTAMP
+  `).run(log);
+}
+
+export function getWeeklyLog(weekId: string): WeeklyLog | null {
+  const db = getDb();
+  return (db.prepare('SELECT * FROM weekly_logs WHERE week_id = ?').get(weekId) as WeeklyLog) || null;
+}
+
+export function getLatestWeeklyLog(): WeeklyLog | null {
+  const db = getDb();
+  return (db.prepare('SELECT * FROM weekly_logs ORDER BY id DESC LIMIT 1').get() as WeeklyLog) || null;
+}
+
+export function getAllWeeklyLogs(limit = 10): WeeklyLog[] {
+  const db = getDb();
+  return db.prepare('SELECT * FROM weekly_logs ORDER BY id DESC LIMIT ?').all(limit) as WeeklyLog[];
 }

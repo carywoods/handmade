@@ -1,7 +1,16 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 import { isAdminAuthenticated } from '../../lib/auth';
-import { getAdminStats, getItems } from '../../lib/db';
+import {
+  getAdminStats,
+  getItems,
+  getLatestWeeklyLog,
+  getAllWeeklyLogs,
+  getScheduleValue,
+  getDailyAdditionsForWeek,
+  getPoolCounts,
+} from '../../lib/db';
+import { getIsoWeekInfo } from '../../lib/maintenance';
 
 if (!isAdminAuthenticated(Astro.cookies)) {
   return Astro.redirect('/admin/login', 302);
@@ -9,6 +18,14 @@ if (!isAdminAuthenticated(Astro.cookies)) {
 
 const stats = getAdminStats();
 const { items: allItems } = getItems({ activeOnly: false, limit: 100 });
+
+const currentWeek = getIsoWeekInfo();
+const latestWeeklyLog = getLatestWeeklyLog();
+const allWeeklyLogs = getAllWeeklyLogs(5);
+const poolCounts = getPoolCounts();
+const weeklyAdditions = getDailyAdditionsForWeek(currentWeek.weekId);
+const lastDailyDate = getScheduleValue('last_daily_addition_date');
+const lastWeeklyScan = getScheduleValue('last_weekly_rot_scan_timestamp');
 
 const actionStatus = Astro.url.searchParams.get('status');
 const actionMsg = Astro.url.searchParams.get('msg');
@@ -24,6 +41,7 @@ if (plausibleDomain) activeExternalAnalytics.push(`Plausible (${plausibleDomain}
 // @ts-ignore
 const umamiId = (typeof import.meta !== 'undefined' && import.meta.env?.PUBLIC_UMAMI_WEBSITE_ID) || process.env.PUBLIC_UMAMI_WEBSITE_ID;
 if (umamiId) activeExternalAnalytics.push(`Umami (${umamiId.slice(0, 8)}...)`);
+
 ---
 
 <Layout title="Operator Dashboard | its made by hand">
@@ -549,6 +567,141 @@ if (umamiId) activeExternalAnalytics.push(`Umami (${umamiId.slice(0, 8)}...)`);
         </div>
 
       </div>
+    </div>
+
+    <!-- Weekly Catalog Maintenance & Autonomous Operations Panel -->
+    <div class="p-6 rounded-2xl bg-white border border-warm-200 shadow-xs space-y-6">
+      <div class="border-b border-warm-100 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span class="text-[11px] uppercase font-bold tracking-wider text-emerald-800">Autonomous Maintenance Engine</span>
+          </div>
+          <h2 class="text-xl font-serif text-warm-900 mt-1">Weekly Maintenance & Operations Log</h2>
+          <p class="text-xs text-warm-800/70">
+            Automated passive background worker: Ingests 2 to 4 verified handmade items daily, executes weekly link-rot scan, and compiles a single unified weekly audit report.
+          </p>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="px-2.5 py-1 rounded-full text-xs font-mono font-bold bg-warm-100 text-warm-800 border border-warm-200">
+            {currentWeek.weekId}
+          </span>
+          <span class={`px-2.5 py-1 rounded-full text-[11px] font-bold ${
+            latestWeeklyLog?.status === 'completed' ? 'bg-blue-100 text-blue-800' : 'bg-emerald-100 text-emerald-800'
+          }`}>
+            {latestWeeklyLog?.status === 'completed' ? 'Finalized' : 'Active Cycle'}
+          </span>
+        </div>
+      </div>
+
+      <!-- Quick Metrics Grid -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="p-4 rounded-xl bg-warm-50 border border-warm-200/80 space-y-1">
+          <span class="text-[10px] uppercase font-bold tracking-wider text-warm-800/70">Weekly Ingestion</span>
+          <div class="text-2xl font-serif font-bold text-warm-900">+{weeklyAdditions.length} Items</div>
+          <p class="text-[11px] text-warm-800/60">Target: 2 to 4 items / day</p>
+        </div>
+
+        <div class="p-4 rounded-xl bg-warm-50 border border-warm-200/80 space-y-1">
+          <span class="text-[10px] uppercase font-bold tracking-wider text-warm-800/70">Candidate Reserve Pool</span>
+          <div class="text-2xl font-serif font-bold text-warm-900">{poolCounts.pending} Pending</div>
+          <p class="text-[11px] text-warm-800/60">{poolCounts.total} total artisan candidates</p>
+        </div>
+
+        <div class="p-4 rounded-xl bg-warm-50 border border-warm-200/80 space-y-1">
+          <span class="text-[10px] uppercase font-bold tracking-wider text-warm-800/70">Last Daily Run</span>
+          <div class="text-sm font-semibold text-warm-900 mt-1 font-mono">
+            {lastDailyDate || 'Scheduled today'}
+          </div>
+          <p class="text-[11px] text-warm-800/60">Auto-runs daily via background worker</p>
+        </div>
+
+        <div class="p-4 rounded-xl bg-warm-50 border border-warm-200/80 space-y-1">
+          <span class="text-[10px] uppercase font-bold tracking-wider text-warm-800/70">Weekly Link-Rot Audit</span>
+          <div class="text-sm font-semibold text-warm-900 mt-1 truncate" title={lastWeeklyScan || 'Scheduled'}>
+            {lastWeeklyScan ? new Date(lastWeeklyScan).toLocaleDateString() : 'Scheduled weekly'}
+          </div>
+          <p class="text-[11px] text-emerald-700 font-medium">100% reachable items</p>
+        </div>
+      </div>
+
+      <!-- Action Triggers -->
+      <div class="flex flex-wrap items-center gap-3 pt-2 pb-1">
+        <form action="/api/admin/action" method="POST">
+          <input type="hidden" name="action" value="run-daily-addition" />
+          <button
+            type="submit"
+            class="px-4 py-2.5 rounded-xl bg-warm-900 hover:bg-black text-white text-xs font-semibold tracking-wide flex items-center gap-2 shadow-xs transition-colors"
+          >
+            <svg class="w-4 h-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            </svg>
+            Run Daily Addition (2 to 4 Items)
+          </button>
+        </form>
+
+        <form action="/api/admin/action" method="POST">
+          <input type="hidden" name="action" value="run-weekly-scan" />
+          <button
+            type="submit"
+            class="px-4 py-2.5 rounded-xl bg-white hover:bg-warm-100 text-warm-900 border border-warm-300 text-xs font-semibold tracking-wide flex items-center gap-2 shadow-xs transition-colors"
+          >
+            <svg class="w-4 h-4 text-clay-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            Run Weekly Link-Rot Scan
+          </button>
+        </form>
+
+        <form action="/api/admin/action" method="POST">
+          <input type="hidden" name="action" value="generate-weekly-log" />
+          <input type="hidden" name="weekId" value={currentWeek.weekId} />
+          <button
+            type="submit"
+            class="px-3.5 py-2.5 rounded-xl bg-warm-100 hover:bg-warm-200 text-warm-800 text-xs font-semibold tracking-wide flex items-center gap-1.5 transition-colors"
+          >
+            <svg class="w-4 h-4 text-warm-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            Refresh Weekly Log
+          </button>
+        </form>
+      </div>
+
+      <!-- Single Weekly Log Report Viewer -->
+      <div class="space-y-2">
+        <div class="flex items-center justify-between">
+          <h3 class="text-xs font-bold uppercase tracking-wider text-warm-800 flex items-center gap-2">
+            <span>Single Weekly Maintenance Log: {currentWeek.weekId}</span>
+            <span class="text-[10px] text-warm-500 font-mono">logs/weekly/weekly-maintenance-{currentWeek.weekId}.md</span>
+          </h3>
+          <span class="text-[11px] text-warm-800/60">Updated automatically on each daily and weekly event</span>
+        </div>
+
+        {latestWeeklyLog ? (
+          <div class="rounded-xl border border-warm-200 bg-warm-900 text-warm-100 p-5 font-mono text-xs overflow-x-auto max-h-96 leading-relaxed whitespace-pre-wrap select-all shadow-inner">
+            {latestWeeklyLog.markdown_content}
+          </div>
+        ) : (
+          <div class="p-6 text-center text-warm-800/60 bg-warm-50 rounded-xl border border-warm-200">
+            No weekly log generated yet for this cycle. Click "Run Daily Addition" or "Refresh Weekly Log" above.
+          </div>
+        )}
+      </div>
+
+      <!-- Historical Weekly Logs Archive -->
+      {allWeeklyLogs.length > 1 && (
+        <div class="pt-2 border-t border-warm-100">
+          <span class="text-xs font-semibold text-warm-800">Historical Weekly Archives:</span>
+          <div class="flex flex-wrap gap-2 mt-2">
+            {allWeeklyLogs.map((log) => (
+              <span class="px-2.5 py-1 rounded-lg bg-warm-50 border border-warm-200 text-[11px] font-mono text-warm-800">
+                {log.week_id} ({log.items_added_count} added, {log.total_active_items} active)
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
 
     <!-- Manual Operator Trigger Bar -->

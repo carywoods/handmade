@@ -18,16 +18,23 @@ if (process.env.NODE_ENV === 'production' && !process.env.AMAZON_TAG) {
 import { isValidAsin, normalizeAsin, extractAsin } from './asin.js';
 export { isValidAsin, normalizeAsin, extractAsin } from './asin.js';
 
+export function isCuratedCatalogSku(asin: string): boolean {
+  return /^B0[89](WD|PO|LT|TX|TE|HM|HO|ART|DROP)/i.test(asin);
+}
+
 /**
- * Returns formatted Amazon direct product link with tracking tag.
+ * Returns formatted Amazon direct product link or Amazon Handmade search with tracking tag.
  * Validates ASIN format before formatting.
  */
-export function formatAffiliateUrl(asin: string): string {
+export function formatAffiliateUrl(asin: string, title?: string | null): string {
   const cleanAsin = normalizeAsin(asin);
   if (!cleanAsin) {
     throw new Error(`Invalid Amazon ASIN: "${asin}". Must be a 10-character alphanumeric string.`);
   }
   const tag = getAmazonTag();
+  if (isCuratedCatalogSku(cleanAsin) && title) {
+    return `https://www.amazon.com/s?k=${encodeURIComponent(title)}&i=handmade&tag=${encodeURIComponent(tag)}`;
+  }
   return `https://www.amazon.com/dp/${cleanAsin}?tag=${encodeURIComponent(tag)}`;
 }
 
